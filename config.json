@@ -1,0 +1,45 @@
+{
+  "symbols": {
+    "spot": "BTC/USDT",
+    "future": "BTC/USDT:USDT"
+  },
+  "arbitrage_analyzer": {
+    "input_file": "data/last_prices_ws.json",
+    "output_file": "data/arbitrage_analysis.json",
+    "symbol": "BTC/USDT:USDT",
+    "interval": 1,
+    "volume_trade": 100
+  },
+  "tokens_analyzer": {
+    "output_path": "data/tokens_analyzer.json",
+    "test_mode": false,
+    "periods": {
+      "delta": "1h",
+      "vol": "4h",
+      "trade": "1h",
+      "NATR": "1d",
+      "spread": "15m",
+      "activity": "1h"
+    },
+    "thresholds": {
+      "delta": 0,
+      "vol": 0,
+      "trade": 0,
+      "NATR": 0,
+      "spread": 0,
+      "activity": 0
+    },
+    "interval": 5
+  },
+  "exchanges_ws": {
+    "exchanges": ["binance", "okx", "bybit", "gate", "bitget", "bingx", "mexc"],
+    "reconnect_interval": 5,
+    "max_reconnect_attempts": 10,
+    "output_file": "data/last_prices_ws.json"
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "logs/log.log"
+  }
+}

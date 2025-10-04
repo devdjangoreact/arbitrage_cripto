@@ -1,0 +1,6 @@
+- always use settings.py to get the settings
+- always use logger.py to get the logger
+- always use main.py to get the main
+- always save test files in the tests folder
+- code mast working on windows and linux
+- one file readme.md in the root folder

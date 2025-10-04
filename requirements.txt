@@ -1,0 +1,6 @@
+websockets
+ccxt
+protobuf==5.29.5
+uv==0.8.22
+ruff==0.13.3
+python-dotenv
