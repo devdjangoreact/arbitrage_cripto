@@ -42,13 +42,13 @@ async def main():
     )
 
     try:
-        # Запускаємо WebSocket потоки та аналізатори паралельно
+        # Start WebSocket streams and analyzers in parallel
         await asyncio.gather(
             ws_exchanges.stream_futures(symbol, future_symbol),
             analyzer.run(),
             tokens_analyzer.run(
                 interval=settings.tokens_interval
-            ),  # Використовуємо інтервал з налаштувань
+            ),  # Use interval from settings
         )
     except Exception as e:
         logger.error(f"Main error: {e}")

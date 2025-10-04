@@ -92,7 +92,7 @@ class AnalyzeArbitrage:
 
         volume_trade = self.volume_trade
 
-        # Правильний розрахунок прибутку
+        # Correct profit calculation
         bid_profit = volume_trade * ((bid[0] - medium_price) / medium_price)
         ask_profit = volume_trade * ((medium_price - ask[0]) / ask[0])
         pls = bid_profit + ask_profit
@@ -136,7 +136,7 @@ class AnalyzeArbitrage:
             results = []
             seen = set()
 
-        # Перший запуск: аналіз всіх секунд в колекції
+        # First run: analyze all seconds in collection
         if self.last_prices_collection is not None and not results:
             entries = []
             for e in self.last_prices_collection:
@@ -171,7 +171,7 @@ class AnalyzeArbitrage:
                     results, f, indent=2, ensure_ascii=False, separators=(",", ": ")
                 )
 
-        # Звичайний режим (поточна секунда)
+        # Normal mode (current second)
         while True:
             try:
                 if self.last_prices_collection is not None:

@@ -11,8 +11,8 @@ from ..logger import get_logger
 
 class TokensAnalyzer:
     """
-    Аналізатор токенів для виявлення арбітражних можливостей.
-    Розраховує метрики: delta, volume, trade count, NATR, spread, activity.
+    Token analyzer for detecting arbitrage opportunities.
+    Calculates metrics: delta, volume, trade count, NATR, spread, activity.
     """
 
     def __init__(
@@ -28,7 +28,7 @@ class TokensAnalyzer:
         self.logger = get_logger()
         self._test_mode = test_mode
 
-        # Буфери для зберігання історичних даних
+        # Buffers for storing historical data
         self.price_history = defaultdict(
             lambda: defaultdict(deque)
         )  # {exchange: {symbol: deque}}
@@ -43,7 +43,7 @@ class TokensAnalyzer:
             "spread": "1h",
             "activity": "1h",
         }
-        # Налаштування періодів (в секундах)
+        # Period settings (in seconds)
         self.periods_seconds = {
             "1m": 60,
             "5m": 300,
@@ -53,22 +53,22 @@ class TokensAnalyzer:
             "1d": 86400,
         }
 
-        # Пороги для фільтрації (знижені для тестування)
+        # Filtering thresholds (lowered for testing)
         self.thresholds = thresholds or {
-            "delta": 0,  # 0.01% мінімальна різниця цін
-            "vol": 0,  # мінімальний обсяг торгів
-            "trade": 0,  # мінімальна кількість угод
-            "NATR": 0,  # мінімальна волатильність
-            "spread": 0,  # мінімальний спред
-            "activity": 0,  # мінімальна активність
+            "delta": 0,  # 0.01% minimum price difference
+            "vol": 0,  # minimum trading volume
+            "trade": 0,  # minimum number of trades
+            "NATR": 0,  # minimum volatility
+            "spread": 0,  # minimum spread
+            "activity": 0,  # minimum activity
         }
         self._data_processed = False
 
     def _get_period_timestamp(self, period: str) -> int:
-        """Отримати timestamp для заданого періоду."""
-        # Для тестування з файловими даними, використовуємо час з даних
+        """Get timestamp for given period."""
+        # For testing with file data, use time from data
         if hasattr(self, "_test_mode") and self._test_mode:
-            # Знаходимо найпізніший timestamp з даних
+            # Find the latest timestamp from data
             if self.last_prices_collection:
                 latest_timestamp = max(
                     entry.get("timestamp", 0)
@@ -79,26 +79,24 @@ class TokensAnalyzer:
                 return latest_timestamp - (period_seconds * 1000)
 
         now = int(time.time() * 1000)
-        period_seconds = self.periods_seconds.get(
-            period, 3600
-        )  # за замовчуванням 1 година
+        period_seconds = self.periods_seconds.get(period, 3600)  # default 1 hour
         return now - (period_seconds * 1000)
 
     def _filter_by_period(self, data: deque, period: str) -> List:
-        """Фільтрувати дані за періодом."""
+        """Filter data by period."""
         cutoff_ts = self._get_period_timestamp(period)
         return [item for item in data if item.get("timestamp", 0) >= cutoff_ts]
 
     def _calculate_delta(self, prices: List[Dict]) -> float:
-        """Розрахувати абсолютну різницю цін (delta)."""
+        """Calculate absolute price difference (delta)."""
         if len(prices) < 1:
             return 0.0
 
         if len(prices) == 1:
-            # Якщо тільки одна точка, повертаємо мінімальне значення
+            # If only one point, return minimum value
             return 0.0001
 
-        # Беремо першу та останню ціну в періоді
+        # Take first and last price in period
         first_price = prices[0].get("price", 0)
         last_price = prices[-1].get("price", 0)
 
@@ -108,19 +106,19 @@ class TokensAnalyzer:
         return abs(last_price - first_price) / first_price
 
     def _calculate_volume(self, volumes: List[Dict]) -> float:
-        """Розрахувати сумарний обсяг торгів."""
+        """Calculate total trading volume."""
         return sum(item.get("volume", 0) for item in volumes)
 
     def _calculate_trade_count(self, trades: List[Dict]) -> int:
-        """Розрахувати кількість угод."""
+        """Calculate number of trades."""
         return len(trades)
 
     def _calculate_natr(self, prices: List[Dict], period: int = 14) -> float:
-        """Розрахувати Normalized Average True Range (NATR)."""
+        """Calculate Normalized Average True Range (NATR)."""
         if len(prices) < period + 1:
             return 0.0
 
-        # Сортуємо за часом
+        # Sort by time
         sorted_prices = sorted(prices, key=lambda x: x.get("timestamp", 0))
 
         true_ranges = []
@@ -149,11 +147,11 @@ class TokensAnalyzer:
         return atr / current_price if current_price > 0 else 0.0
 
     def _calculate_spread(self, prices: List[Dict]) -> float:
-        """Розрахувати спред (різниця між ask та bid)."""
+        """Calculate spread (difference between ask and bid)."""
         if not prices:
             return 0.0
 
-        # Беремо останні дані
+        # Take latest data
         last_data = prices[-1]
         ask = (
             last_data.get("ask", [0, 0])[0]
@@ -172,14 +170,14 @@ class TokensAnalyzer:
         return (ask - bid) / ask
 
     def _calculate_activity(self, prices: List[Dict]) -> float:
-        """Розрахувати активність (частота оновлень цін)."""
+        """Calculate activity (price update frequency)."""
         if len(prices) < 2:
             return 0.0
 
-        # Сортуємо за часом
+        # Sort by time
         sorted_prices = sorted(prices, key=lambda x: x.get("timestamp", 0))
 
-        # Розраховуємо середній інтервал між оновленнями
+        # Calculate average interval between updates
         intervals = []
         for i in range(1, len(sorted_prices)):
             interval = sorted_prices[i].get("timestamp", 0) - sorted_prices[i - 1].get(
@@ -190,11 +188,11 @@ class TokensAnalyzer:
         if not intervals:
             return 0.0
 
-        avg_interval = statistics.mean(intervals) / 1000  # переводимо в секунди
+        avg_interval = statistics.mean(intervals) / 1000  # convert to seconds
         return 1.0 / avg_interval if avg_interval > 0 else 0.0
 
     async def _analyze_file_data(self):
-        """Аналізувати дані з файлу last_prices_ws.json перед переходом до реальних даних."""
+        """Analyze data from last_prices_ws.json file before switching to real data."""
         file_path = "data/last_prices_ws.json"
         try:
             self.logger.info(f"Loading data from {file_path}...")
@@ -211,18 +209,18 @@ class TokensAnalyzer:
             if file_data:
                 self.logger.info(f"Loaded {len(file_data)} records from file")
 
-                # Обробляємо дані з файлу
+                # Process data from file
                 for entry in file_data:
                     if isinstance(entry, dict):
                         self._process_price_data(entry)
 
-                # Виконуємо аналіз з даними з файлу
+                # Perform analysis with data from file
                 self.logger.info("Analyzing file data...")
                 result = self.filter_and_save(
                     output_path="data/tokens_analyzer_file.json"
                 )
 
-                # Логуємо результат аналізу файлу
+                # Log file analysis result
                 total_tokens = sum(len(tokens) for tokens in result.values())
                 self.logger.info(
                     f"File analysis completed. Found {total_tokens} tokens across {len(result)} exchanges"
@@ -248,7 +246,7 @@ class TokensAnalyzer:
             self.logger.error(f"Error analyzing file data: {e}")
 
     def _round_metrics(self, data: Dict) -> Dict:
-        """Округлити всі числові значення в результатах до 4 знаків після коми."""
+        """Round all numeric values in results to 4 decimal places."""
         rounded_data = {}
         for exchange, tokens in data.items():
             rounded_data[exchange] = {}
@@ -262,14 +260,14 @@ class TokensAnalyzer:
         return rounded_data
 
     def _extract_symbol_from_data(self, entry: Dict) -> str:
-        """Витягти символ токена з запису даних."""
+        """Extract token symbol from data record."""
         symbol = entry.get("symbol", "")
         if "/" in symbol:
-            return symbol.split("/")[0].lower()  # BTC з BTC/USDT
+            return symbol.split("/")[0].lower()  # BTC from BTC/USDT
         return symbol.lower()
 
     def _process_price_data(self, entry: Dict):
-        """Обробити дані про ціни та додати до історії."""
+        """Process price data and add to history."""
         exchange = entry.get("exchange")
         symbol = self._extract_symbol_from_data(entry)
         timestamp = entry.get("timestamp", 0)
@@ -277,7 +275,7 @@ class TokensAnalyzer:
         if not exchange or not symbol:
             return
 
-        # Витягуємо ціну (середня з ask та bid)
+        # Extract price (average of ask and bid)
         ask = entry.get("ask")
         bid = entry.get("bid")
 
@@ -304,7 +302,7 @@ class TokensAnalyzer:
         else:
             return
 
-        # Додаємо до історії цін
+        # Add to price history
         price_data = {
             "timestamp": timestamp,
             "price": price,
@@ -316,12 +314,12 @@ class TokensAnalyzer:
 
         self.price_history[exchange][symbol].append(price_data)
 
-        # Обмежуємо розмір буфера (зберігаємо дані за останні 24 години)
-        max_size = 86400  # 24 години в секундах
+        # Limit buffer size (keep data for last 24 hours)
+        max_size = 86400  # 24 hours in seconds
         while len(self.price_history[exchange][symbol]) > max_size:
             self.price_history[exchange][symbol].popleft()
 
-        # Додаємо до історії обсягів (використовуємо bid volume як проксі)
+        # Add to volume history (use bid volume as proxy)
         if isinstance(bid, list) and len(bid) >= 2:
             volume = bid[1]
         elif isinstance(ask, list) and len(ask) >= 2:
@@ -329,14 +327,14 @@ class TokensAnalyzer:
         else:
             volume = 0
 
-        # Завжди додаємо volume (навіть якщо 0)
+        # Always add volume (even if 0)
         volume_data = {"timestamp": timestamp, "volume": volume}
         self.volume_history[exchange][symbol].append(volume_data)
 
         while len(self.volume_history[exchange][symbol]) > max_size:
             self.volume_history[exchange][symbol].popleft()
 
-        # Додаємо до історії угод (кожне оновлення ціни = угода)
+        # Add to trade history (each price update = trade)
         trade_data = {"timestamp": timestamp, "price": price, "volume": volume}
         self.trade_history[exchange][symbol].append(trade_data)
 
@@ -344,11 +342,11 @@ class TokensAnalyzer:
             self.trade_history[exchange][symbol].popleft()
 
     def calculate_metrics(self, exchange: str, symbol: str) -> Dict:
-        """Розрахувати всі метрики для токена на біржі."""
+        """Calculate all metrics for token on exchange."""
 
         result = {}
 
-        # Отримуємо дані за потрібні періоди
+        # Get data for required periods
         price_data = self._filter_by_period(
             self.price_history[exchange][symbol], self.periods.get("delta", "1h")
         )
@@ -359,7 +357,7 @@ class TokensAnalyzer:
             self.trade_history[exchange][symbol], self.periods.get("trade", "1h")
         )
 
-        # Розраховуємо метрики
+        # Calculate metrics
         result["delta"] = self._calculate_delta(price_data)
         result["vol"] = self._calculate_volume(volume_data)
         result["trade"] = self._calculate_trade_count(trade_data)
@@ -384,7 +382,7 @@ class TokensAnalyzer:
 
         result = {}
 
-        # Обробляємо дані з колекції (тільки якщо ще не оброблені)
+        # Process data from collection (only if not yet processed)
         if self.last_prices_collection and not hasattr(self, "_data_processed"):
             self.logger.info(
                 f"Processing {len(self.last_prices_collection)} records from collection..."
@@ -401,7 +399,7 @@ class TokensAnalyzer:
                         continue
             self._data_processed = True
 
-        # Розраховуємо метрики для всіх бірж та токенів
+        # Calculate metrics for all exchanges and tokens
         for exchange in self.price_history:
             result[exchange] = {}
 
@@ -409,7 +407,7 @@ class TokensAnalyzer:
                 try:
                     metrics = self.calculate_metrics(exchange, symbol)
 
-                    # Фільтруємо за порогами (NATR може бути 0, тому перевіряємо тільки якщо > 0)
+                    # Filter by thresholds (NATR can be 0, so check only if > 0)
                     if (
                         metrics["delta"] >= self.thresholds["delta"]
                         and metrics["vol"] >= self.thresholds["vol"]
@@ -430,10 +428,10 @@ class TokensAnalyzer:
                     )
                     continue
 
-        # Округлюємо всі числові значення до 4 знаків після коми
+        # Round all numeric values to 4 decimal places
         rounded_result = self._round_metrics(result)
 
-        # Зберігаємо результат
+        # Save result
         try:
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(rounded_result, f, indent=2, ensure_ascii=False)
@@ -444,23 +442,23 @@ class TokensAnalyzer:
         return result
 
     async def run(self, interval: int = 60):
-        """Запустити аналізатор токенів в циклі."""
+        """Run token analyzer in loop."""
         self.logger.info("Starting tokens analyzer...")
 
-        # Спочатку аналізуємо дані з файлу last_prices_ws.json
+        # First analyze data from last_prices_ws.json file
         await self._analyze_file_data()
 
-        # Чекаємо трохи, щоб накопичилися нові дані
+        # Wait a bit for new data to accumulate
         await asyncio.sleep(5)
 
         while True:
             try:
-                # Обробляємо нові дані (тільки нові записи)
+                # Process new data (only new records)
                 if self.last_prices_collection:
-                    # Отримуємо кількість записів, які ми вже обробили
+                    # Get number of records we have already processed
                     current_length = len(self.last_prices_collection)
 
-                    # Якщо є нові записи, обробляємо їх
+                    # If there are new records, process them
                     if hasattr(self, "_last_processed_length"):
                         if current_length > self._last_processed_length:
                             new_entries = self.last_prices_collection[
@@ -480,13 +478,13 @@ class TokensAnalyzer:
                                     except Exception:
                                         continue
                     else:
-                        # Встановлюємо початкову довжину після обробки файлу
+                        # Set initial length after file processing
                         self._last_processed_length = current_length
 
-                # Фільтруємо та зберігаємо результати
+                # Filter and save results
                 result = self.filter_and_save()
 
-                # Логуємо результат
+                # Log result
                 total_tokens = sum(len(tokens) for tokens in result.values())
                 self.logger.info(
                     f"Tokens analysis completed. Found {total_tokens} tokens across {len(result)} exchanges"
@@ -499,19 +497,19 @@ class TokensAnalyzer:
                 await asyncio.sleep(interval)
 
 
-# Функція для зворотної сумісності
+# Function for backward compatibility
 def filter_and_save(data, output_path="data/tokens_analyzer.json"):
     """
-    Функція для зворотної сумісності.
-    Створює аналізатор та обробляє дані.
+    Function for backward compatibility.
+    Creates analyzer and processes data.
     """
     analyzer = TokensAnalyzer()
 
-    # Якщо передано дані, обробляємо їх
+    # If data is provided, process it
     if data:
         for exchange, coins in data.items():
             for coin, metrics in coins.items():
-                # Створюємо фейкові дані для тестування
+                # Create fake data for testing
                 fake_entry = {
                     "exchange": exchange,
                     "symbol": f"{coin.upper()}/USDT",

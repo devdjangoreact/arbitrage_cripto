@@ -72,7 +72,7 @@ class ExchangesWS:
                         continue
                     try:
                         obj = json.loads(line)
-                        # Додаємо тільки якщо це dict і немає поля 'error'
+                        # Add only if it's a dict and has no 'error' field
                         if isinstance(obj, dict) and "error" not in obj:
                             loaded.append(obj)
                     except Exception:
@@ -111,10 +111,10 @@ class ExchangesWS:
                     norm_entry = self.normalize_last_price_entry(entry)
                     if self.logger:
                         self.logger.info(f"{norm_entry}")
-                    # Додаємо у колекцію тільки dict
+                    # Add to collection only if dict
                     if isinstance(norm_entry, dict):
                         self.last_prices.append(norm_entry)
-                    # Додаємо у файл
+                    # Add to file
                     with open(output_file, "a", encoding="utf-8") as f:
                         f.write(json.dumps(norm_entry, ensure_ascii=False) + "\n")
 
@@ -158,7 +158,7 @@ class ExchangesWS:
             await ex.close()
 
     def normalize_last_price_entry(self, entry):
-        # Приводити entry до єдиного формату для last_prices_ws.json
+        # Normalize entry to unified format for last_prices_ws.json
         norm = {
             "exchange": entry.get("exchange"),
             "symbol": entry.get("symbol"),
@@ -168,7 +168,7 @@ class ExchangesWS:
             "ask": None,
             "bid": None,
         }
-        # ask і bid — масив з двох чисел: [ціна, обсяг]
+        # ask and bid are arrays of two numbers: [price, volume]
         ask = entry.get("ask")
         bid = entry.get("bid")
 
