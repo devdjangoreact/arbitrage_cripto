@@ -1,0 +1,182 @@
+<!-- Analyzer Section -->
+<div class="analyzer-section" id="analyzerSection" style="display: none">
+  <div class="container">
+    <div class="filters-section">
+      <div class="compact-stats">
+        <div class="stat-item">
+          <div class="stat-value" id="totalTokens">0</div>
+          <div class="stat-label">Tokens</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="totalExchanges">0</div>
+          <div class="stat-label">Exchanges</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="updateCount">0</div>
+          <div class="stat-label">Updates</div>
+        </div>
+      </div>
+
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label for="deltaPeriod">Delta Period</label>
+          <select id="deltaPeriod">
+            <option value="1m">1m</option>
+            <option value="5m">5m</option>
+            <option value="15m">15m</option>
+            <option value="1h" selected>1h</option>
+            <option value="4h">4h</option>
+            <option value="1d">1d</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="volPeriod">Volume Period</label>
+          <select id="volPeriod">
+            <option value="1m">1m</option>
+            <option value="5m">5m</option>
+            <option value="15m">15m</option>
+            <option value="1h" selected>1h</option>
+            <option value="4h">4h</option>
+            <option value="1d">1d</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="tradePeriod">Trade Period</label>
+          <select id="tradePeriod">
+            <option value="1m">1m</option>
+            <option value="5m">5m</option>
+            <option value="15m">15m</option>
+            <option value="1h" selected>1h</option>
+            <option value="4h">4h</option>
+            <option value="1d">1d</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="natrPeriod">NATR Period</label>
+          <select id="natrPeriod">
+            <option value="1m">1m</option>
+            <option value="5m">5m</option>
+            <option value="15m">15m</option>
+            <option value="1h" selected>1h</option>
+            <option value="4h">4h</option>
+            <option value="1d">1d</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="spreadPeriod">Spread Period</label>
+          <select id="spreadPeriod">
+            <option value="1m">1m</option>
+            <option value="5m">5m</option>
+            <option value="15m">15m</option>
+            <option value="1h" selected>1h</option>
+            <option value="4h">4h</option>
+            <option value="1d">1d</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="activityPeriod">Activity Period</label>
+          <select id="activityPeriod">
+            <option value="1m">1m</option>
+            <option value="5m">5m</option>
+            <option value="15m">15m</option>
+            <option value="1h" selected>1h</option>
+            <option value="4h">4h</option>
+            <option value="1d">1d</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label for="deltaThreshold">Delta Threshold</label>
+          <input
+            type="number"
+            id="deltaThreshold"
+            step="0.0001"
+            value="0"
+            placeholder="0.0001"
+          />
+        </div>
+        <div class="filter-group">
+          <label for="volThreshold">Volume Threshold</label>
+          <input
+            type="number"
+            id="volThreshold"
+            step="0.01"
+            value="0"
+            placeholder="1000"
+          />
+        </div>
+        <div class="filter-group">
+          <label for="tradeThreshold">Trade Threshold</label>
+          <input
+            type="number"
+            id="tradeThreshold"
+            step="1"
+            value="0"
+            placeholder="10"
+          />
+        </div>
+        <div class="filter-group">
+          <label for="natrThreshold">NATR Threshold</label>
+          <input
+            type="number"
+            id="natrThreshold"
+            step="0.0001"
+            value="0"
+            placeholder="0.0001"
+          />
+        </div>
+        <div class="filter-group">
+          <label for="spreadThreshold">Spread Threshold</label>
+          <input
+            type="number"
+            id="spreadThreshold"
+            step="0.0001"
+            value="0"
+            placeholder="0.0001"
+          />
+        </div>
+        <div class="filter-group">
+          <label for="activityThreshold">Activity Threshold</label>
+          <input
+            type="number"
+            id="activityThreshold"
+            step="0.01"
+            value="0"
+            placeholder="1.0"
+          />
+        </div>
+      </div>
+
+      <div class="filter-buttons">
+        <button class="refresh-btn" onclick="applyFilters()">
+          Apply Filters
+        </button>
+        <button class="refresh-btn" onclick="resetFilters()">
+          Reset Filters
+        </button>
+      </div>
+    </div>
+
+    <!-- Tokens Analyzer Section -->
+    <div class="tokens-data-section">
+      <table class="data-table" id="tokensTable" style="display: none">
+        <thead>
+          <tr>
+            <th>Exchange</th>
+            <th>Symbol</th>
+            <th>Delta</th>
+            <th>Volume</th>
+            <th>Trades</th>
+            <th>NATR</th>
+            <th>Spread</th>
+            <th>Activity</th>
+          </tr>
+        </thead>
+        <tbody id="tokensTableBody"></tbody>
+      </table>
+      <div id="tokensContainer"></div>
+    </div>
+  </div>
+</div>

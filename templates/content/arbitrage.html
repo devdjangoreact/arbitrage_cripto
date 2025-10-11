@@ -1,0 +1,49 @@
+<!-- Arbitrage Section -->
+<div class="arbitrage-section" id="arbitrageSection" style="display: none">
+  <div class="container">
+    <div class="arbitrage-header">
+      <h2 class="arbitrage-title">Arbitrage Opportunities</h2>
+      <p class="arbitrage-subtitle">
+        Find profitable trading opportunities across exchanges
+      </p>
+    </div>
+
+    <div class="arbitrage-controls">
+      <div class="control-group">
+        <label for="minProfit">Minimum Profit (%)</label>
+        <input type="number" id="minProfit" value="0.1" step="0.1" min="0" />
+      </div>
+
+      <div class="control-group">
+        <label for="minVolume">Minimum Volume (USDT)</label>
+        <input type="number" id="minVolume" value="1000" step="100" min="0" />
+      </div>
+
+      <div class="control-group">
+        <button class="scan-btn" id="scanArbitrage">
+          🔍 Scan Opportunities
+        </button>
+      </div>
+    </div>
+
+    <div class="arbitrage-results">
+      <table class="arbitrage-table" id="arbitrageTable">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Buy Exchange</th>
+            <th>Sell Exchange</th>
+            <th>Buy Price</th>
+            <th>Sell Price</th>
+            <th>Profit %</th>
+            <th>Volume</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="arbitrageTableBody">
+          <!-- Arbitrage opportunities will be loaded here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

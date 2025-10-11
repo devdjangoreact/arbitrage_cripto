@@ -1,0 +1,99 @@
+<!-- Settings Section -->
+<div class="settings-section" id="settingsSection" style="display: none">
+  <div class="container">
+    <div class="settings-header">
+      <h2 class="settings-title">Settings</h2>
+      <p class="settings-subtitle">Configure your application preferences</p>
+    </div>
+
+    <div class="settings-content">
+      <div class="settings-group">
+        <h3>API Configuration</h3>
+        <div class="setting-item">
+          <label for="apiKey">API Key</label>
+          <input type="password" id="apiKey" placeholder="Enter your API key" />
+        </div>
+
+        <div class="setting-item">
+          <label for="apiSecret">API Secret</label>
+          <input
+            type="password"
+            id="apiSecret"
+            placeholder="Enter your API secret"
+          />
+        </div>
+
+        <div class="setting-item">
+          <label for="apiPassphrase">API Passphrase</label>
+          <input
+            type="password"
+            id="apiPassphrase"
+            placeholder="Enter your API passphrase"
+          />
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>Analysis Settings</h3>
+        <div class="setting-item">
+          <label for="updateInterval">Update Interval (seconds)</label>
+          <input type="number" id="updateInterval" value="5" min="1" max="60" />
+        </div>
+
+        <div class="setting-item">
+          <label for="maxSymbols">Max Symbols to Track</label>
+          <input
+            type="number"
+            id="maxSymbols"
+            value="100"
+            min="10"
+            max="1000"
+          />
+        </div>
+
+        <div class="setting-item">
+          <label for="riskLevel">Risk Level</label>
+          <select id="riskLevel">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>Notifications</h3>
+        <div class="setting-item">
+          <label class="checkbox-label">
+            <input type="checkbox" id="emailNotifications" checked />
+            <span class="checkmark"></span>
+            Email Notifications
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <label class="checkbox-label">
+            <input type="checkbox" id="soundNotifications" checked />
+            <span class="checkmark"></span>
+            Sound Notifications
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <label class="checkbox-label">
+            <input type="checkbox" id="desktopNotifications" />
+            <span class="checkmark"></span>
+            Desktop Notifications
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button class="save-btn" id="saveSettings">💾 Save Settings</button>
+        <button class="reset-btn" id="resetSettings">
+          🔄 Reset to Default
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

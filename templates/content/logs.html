@@ -1,0 +1,70 @@
+<!-- Logs Section -->
+<div class="logs-section" id="logsSection" style="display: none">
+  <div class="container">
+    <div class="logs-header">
+      <h2 class="logs-title">System Logs</h2>
+      <p class="logs-subtitle">
+        Monitor application activity and debug information
+      </p>
+    </div>
+
+    <div class="logs-controls">
+      <div class="log-filters">
+        <select id="logLevel">
+          <option value="all">All Levels</option>
+          <option value="error">Errors Only</option>
+          <option value="warning">Warnings</option>
+          <option value="info">Info</option>
+          <option value="debug">Debug</option>
+        </select>
+
+        <select id="logSource">
+          <option value="all">All Sources</option>
+          <option value="api">API</option>
+          <option value="trading">Trading</option>
+          <option value="analysis">Analysis</option>
+          <option value="system">System</option>
+        </select>
+
+        <input type="text" id="logSearch" placeholder="Search logs..." />
+
+        <button class="clear-btn" id="clearLogs">🗑️ Clear Logs</button>
+        <button class="export-btn" id="exportLogs">📥 Export</button>
+      </div>
+    </div>
+
+    <div class="logs-content">
+      <div class="logs-list" id="logsList">
+        <div class="log-entry error">
+          <div class="log-time">2024-01-15 14:30:25</div>
+          <div class="log-level">ERROR</div>
+          <div class="log-source">API</div>
+          <div class="log-message">
+            Failed to connect to Binance API: Connection timeout
+          </div>
+        </div>
+
+        <div class="log-entry warning">
+          <div class="log-time">2024-01-15 14:29:10</div>
+          <div class="log-level">WARNING</div>
+          <div class="log-source">Trading</div>
+          <div class="log-message">Low volume detected for BTC/USDT pair</div>
+        </div>
+
+        <div class="log-entry info">
+          <div class="log-time">2024-01-15 14:28:45</div>
+          <div class="log-level">INFO</div>
+          <div class="log-source">Analysis</div>
+          <div class="log-message">Price analysis completed for 50 symbols</div>
+        </div>
+
+        <div class="log-entry debug">
+          <div class="log-time">2024-01-15 14:28:30</div>
+          <div class="log-level">DEBUG</div>
+          <div class="log-source">System</div>
+          <div class="log-message">Memory usage: 45MB, CPU: 12%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

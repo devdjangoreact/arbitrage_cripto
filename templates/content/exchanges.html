@@ -1,0 +1,66 @@
+<!-- Exchanges Section -->
+<div class="exchanges-section" id="exchangesSection" style="display: none">
+  <div class="container">
+    <div class="exchanges-header">
+      <h2 class="exchanges-title">Exchange Management</h2>
+      <p class="exchanges-subtitle">
+        Manage your connected exchanges and their settings
+      </p>
+    </div>
+
+    <div class="exchanges-content">
+      <div class="exchanges-list">
+        <div class="exchange-card">
+          <div class="exchange-info">
+            <div class="exchange-icon">🏢</div>
+            <div class="exchange-details">
+              <h3>Binance</h3>
+              <p>Status: <span class="status connected">Connected</span></p>
+              <p>API Calls: 1,234 / 1,200</p>
+            </div>
+          </div>
+          <div class="exchange-actions">
+            <button class="action-btn edit">✏️ Edit</button>
+            <button class="action-btn disconnect">❌ Disconnect</button>
+          </div>
+        </div>
+
+        <div class="exchange-card">
+          <div class="exchange-info">
+            <div class="exchange-icon">🏢</div>
+            <div class="exchange-details">
+              <h3>Gate.io</h3>
+              <p>Status: <span class="status connected">Connected</span></p>
+              <p>API Calls: 856 / 1,200</p>
+            </div>
+          </div>
+          <div class="exchange-actions">
+            <button class="action-btn edit">✏️ Edit</button>
+            <button class="action-btn disconnect">❌ Disconnect</button>
+          </div>
+        </div>
+
+        <div class="exchange-card">
+          <div class="exchange-info">
+            <div class="exchange-icon">🏢</div>
+            <div class="exchange-details">
+              <h3>Bitget</h3>
+              <p>
+                Status: <span class="status disconnected">Disconnected</span>
+              </p>
+              <p>Last connected: 2 days ago</p>
+            </div>
+          </div>
+          <div class="exchange-actions">
+            <button class="action-btn connect">🔗 Connect</button>
+            <button class="action-btn edit">✏️ Edit</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="add-exchange">
+        <button class="add-btn" id="addExchange">➕ Add New Exchange</button>
+      </div>
+    </div>
+  </div>
+</div>
