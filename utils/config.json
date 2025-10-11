@@ -1,14 +1,11 @@
 {
-  "symbols": {
-    "spot": "BTC/USDT",
-    "future": "BTC/USDT:USDT"
-  },
+  "symbols": ["BTC/USDT", "ETH/USDT", "BTC/USDT:USDT", "ETH/USDT:USDT"],
   "arbitrage_analyzer": {
     "input_file": "data/last_prices_ws.json",
     "output_file": "data/arbitrage_analysis.json",
-    "symbol": "BTC/USDT:USDT",
     "interval": 1,
-    "volume_trade": 100
+    "volume_trade": 100,
+    "save_to_file": true
   },
   "tokens_analyzer": {
     "output_path": "data/tokens_analyzer.json",
@@ -29,13 +26,20 @@
       "spread": 0,
       "activity": 0
     },
-    "interval": 5
+    "interval": 5,
+    "save_to_file": true
   },
   "exchanges_ws": {
-    "exchanges": ["binance", "okx", "bybit", "gate", "bitget", "bingx", "mexc"],
+    "exchanges": ["gate", "bitget", "bingx"],
+    "exchanges_disabled": ["mexc", "mexc_custom", "binance", "okx", "bybit"],
     "reconnect_interval": 5,
     "max_reconnect_attempts": 10,
     "output_file": "data/last_prices_ws.json"
+  },
+  "mexc": {
+    "enabled": true,
+    "default_leverage": 20,
+    "default_volume": 0.5
   },
   "logging": {
     "level": "INFO",

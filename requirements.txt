@@ -1,6 +1,24 @@
+# Core Application Dependencies
 websockets
-ccxt
+ccxt==4.5.7
 protobuf==5.29.5
+python-dotenv
+loguru==0.7.3
+
+# Development Tools
 uv==0.8.22
 ruff==0.13.3
-python-dotenv
+black
+pylint
+mypy
+
+# Additional Development Dependencies
+pytest
+pytest-asyncio
+pytest-cov
+isort
+
+# Web Server Dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+jinja2==3.1.2

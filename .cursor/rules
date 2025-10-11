@@ -1,8 +1,20 @@
 - always use settings.py to get the settings
 - always use logger.py to get the logger
 - always use main.py to get the main
+- always code start from main.py
 - always save test files in the tests folder
 - code mast working on windows and linux
-- one file readme.md in the root folder
+- one file readme.md all documentation in them
+- don't create other files than the ones specified in the project
 - use english language
--
+- add code and don't break existing code
+- you add new functionality, don't break existing functionality
+- don't create or run tests if i not ask you to do it
+- write simple code minimum amount of lines of code
+- all parameters for project onlyin settings.py
+- always create function for testing class in the same file
+- never read .env file
+- all credentials for project get from .env file to settings.py
+- all css html js code in the templates folder
+
+- exchange work only with usdt for futures att all, without usdc and spot

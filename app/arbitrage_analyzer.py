@@ -2,8 +2,10 @@ import asyncio
 import json
 import time
 from datetime import datetime
+from typing import Any, Dict
 
-from ..logger import get_logger
+from utils.logger import get_logger
+from utils.settings import get_settings
 
 
 class AnalyzeArbitrage:
@@ -12,21 +14,23 @@ class AnalyzeArbitrage:
         self,
         input_file="data/last_prices_ws.json",
         output_file="data/arbitrage_analysis.json",
-        symbol="BTC/USDT:USDT",
+        symbols=None,
         interval=1,
         last_prices_collection=None,
         volume_trade=100,
+        save_to_file=True,
     ):
         self.input_file = input_file
         self.output_file = output_file
-        self.symbol = symbol
+        self.symbols = symbols or get_settings().symbols
         self.interval = interval
         self.last_prices_collection = last_prices_collection
         self.volume_trade = volume_trade
+        self.save_to_file = save_to_file
         self.logger = get_logger()
 
     def _get_last_prices_per_exchange(self, entries, target_ts):
-        last = {}
+        last: Dict[str, Any] = {}
         for entry in entries:
             if isinstance(entry, str):
                 try:
@@ -41,19 +45,17 @@ class AnalyzeArbitrage:
                     last[exch] = entry
         return last
 
-    def _calculate_arbitrage_result(self, last_prices, timestamp, is_realtime=True):
+    def _calculate_arbitrage_result(self, last_prices, symbol, timestamp, is_realtime=True):
         if not last_prices:
             return None
 
         if is_realtime:
             dt = datetime.utcnow().replace(microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
         else:
-            dt = datetime.utcfromtimestamp(timestamp // 1000).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            dt = datetime.utcfromtimestamp(timestamp // 1000).strftime("%Y-%m-%d %H:%M:%S")
 
         result = {
-            "symbol": self.symbol,
+            "symbol": symbol,
             "datetime": dt,
             "exchange_future": [
                 {
@@ -67,16 +69,8 @@ class AnalyzeArbitrage:
             ],
         }
 
-        bids = [
-            (exch, entry["timestamp"], entry["bid"])
-            for exch, entry in last_prices.items()
-            if entry.get("bid")
-        ]
-        asks = [
-            (exch, entry["timestamp"], entry["ask"])
-            for exch, entry in last_prices.items()
-            if entry.get("ask")
-        ]
+        bids = [(exch, entry["timestamp"], entry["bid"]) for exch, entry in last_prices.items() if entry.get("bid")]
+        asks = [(exch, entry["timestamp"], entry["ask"]) for exch, entry in last_prices.items() if entry.get("ask")]
 
         if not bids or not asks:
             return None
@@ -127,12 +121,20 @@ class AnalyzeArbitrage:
         results = []
         seen = set()
 
-        try:
-            with open(self.output_file, "r", encoding="utf-8") as f:
-                results = json.load(f)
-                for r in results:
-                    seen.add(self._arbitrage_key(r))
-        except Exception:
+        # Only read from file if save_to_file is True
+        if self.save_to_file:
+            try:
+                with open(self.output_file, encoding="utf-8") as f:
+                    results = json.load(f)
+                    for r in results:
+                        seen.add(self._arbitrage_key(r))
+                self.logger.info(f"Loaded {len(results)} existing arbitrage results from {self.output_file}")
+            except Exception:
+                results = []
+                seen = set()
+                self.logger.info("No existing arbitrage results found, starting fresh")
+        else:
+            self.logger.info("File reading disabled (save_to_file=False). Starting with empty results.")
             results = []
             seen = set()
 
@@ -150,26 +152,23 @@ class AnalyzeArbitrage:
                     except Exception:
                         continue
 
-            all_ts = sorted(
-                set(e["timestamp"] // 1000 * 1000 for e in entries if "timestamp" in e)
-            )
+            all_ts = sorted({e["timestamp"] // 1000 * 1000 for e in entries if "timestamp" in e})
 
             for sec in all_ts:
-                last_prices = self._get_last_prices_per_exchange(entries, sec)
-                result = self._calculate_arbitrage_result(
-                    last_prices, sec, is_realtime=False
-                )
+                for symbol in self.symbols:
+                    last_prices = self._get_last_prices_per_exchange(entries, sec)
+                    result = self._calculate_arbitrage_result(last_prices, symbol, sec, is_realtime=False)
 
-                if result:
-                    key = self._arbitrage_key(result)
-                    if key not in seen:
-                        results.append(result)
-                        seen.add(key)
+                    if result:
+                        key = self._arbitrage_key(result)
+                        if key not in seen:
+                            results.append(result)
+                            seen.add(key)
 
-            with open(self.output_file, "w", encoding="utf-8") as f:
-                json.dump(
-                    results, f, indent=2, ensure_ascii=False, separators=(",", ": ")
-                )
+            if self.save_to_file:
+                with open(self.output_file, "w", encoding="utf-8") as f:
+                    json.dump(results, f, indent=2, ensure_ascii=False, separators=(",", ": "))
+                self.logger.info(f"Arbitrage analysis saved to {self.output_file}")
 
         # Normal mode (current second)
         while True:
@@ -182,17 +181,18 @@ class AnalyzeArbitrage:
 
                 now = int(time.time() * 1000)
                 now_sec = now // 1000 * 1000
-                last_prices = self._get_last_prices_per_exchange(entries, now_sec)
-                result = self._calculate_arbitrage_result(
-                    last_prices, now_sec, is_realtime=True
-                )
 
-                if result:
-                    key = self._arbitrage_key(result)
-                    if key not in seen:
-                        results.append(result)
-                        seen.add(key)
+                for symbol in self.symbols:
+                    last_prices = self._get_last_prices_per_exchange(entries, now_sec)
+                    result = self._calculate_arbitrage_result(last_prices, symbol, now_sec, is_realtime=True)
 
+                    if result:
+                        key = self._arbitrage_key(result)
+                        if key not in seen:
+                            results.append(result)
+                            seen.add(key)
+
+                if self.save_to_file:
                     with open(self.output_file, "w", encoding="utf-8") as f:
                         json.dump(
                             results,
@@ -201,6 +201,7 @@ class AnalyzeArbitrage:
                             ensure_ascii=False,
                             separators=(",", ": "),
                         )
+                    self.logger.debug(f"Arbitrage analysis updated in {self.output_file}")
 
             except Exception as e:
                 self.logger.error(f"Error in arbitrage analysis: {e}")

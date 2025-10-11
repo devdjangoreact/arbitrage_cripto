@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Token Analyzer</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #f5f5f5;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: white;
+      }
+
+      .filters-section {
+        background: #f8f9fa;
+        padding: 8px;
+        border-bottom: 1px solid #dee2e6;
+        flex-shrink: 0;
+      }
+
+      .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .filter-group label {
+        font-weight: 600;
+        margin-bottom: 2px;
+        color: #495057;
+        font-size: 0.75em;
+      }
+
+      .filter-group input,
+      .filter-group select {
+        padding: 3px 5px;
+        border: 1px solid #e9ecef;
+        border-radius: 3px;
+        font-size: 11px;
+        transition: border-color 0.3s;
+      }
+
+      .filter-group input:focus,
+      .filter-group select:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .filter-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .refresh-btn {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 11px;
+        transition: background 0.3s;
+      }
+
+      .refresh-btn:hover {
+        background: #5a6fd8;
+      }
+
+      .tokens-data-section {
+        flex: 1;
+        padding: 5px;
+        overflow: hidden;
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        font-size: 0.75em;
+        height: 100%;
+      }
+
+      .data-table th {
+        background: #667eea;
+        color: white;
+        padding: 4px 3px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.7em;
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .data-table th:last-child {
+        border-right: none;
+      }
+
+      .data-table td {
+        padding: 3px 3px;
+        text-align: center;
+        border-bottom: 1px solid #f1f3f4;
+        border-right: 1px solid #f1f3f4;
+        font-size: 0.7em;
+      }
+
+      .data-table td:last-child {
+        border-right: none;
+      }
+
+      .data-table tr:hover {
+        background-color: #f8f9fa;
+      }
+
+      .data-table tr:nth-child(even) {
+        background-color: #fafafa;
+      }
+
+      .exchange-cell {
+        font-weight: bold;
+        color: #2c3e50;
+        background-color: #e9ecef;
+      }
+
+      .symbol-cell {
+        font-weight: bold;
+        color: #2c3e50;
+        text-transform: uppercase;
+      }
+
+      .metric-cell {
+        font-weight: 600;
+        color: #2c3e50;
+      }
+
+      .metric-cell.high {
+        color: #28a745;
+      }
+
+      .metric-cell.medium {
+        color: #ffc107;
+      }
+
+      .metric-cell.low {
+        color: #dc3545;
+      }
+
+      .no-data {
+        text-align: center;
+        padding: 20px;
+        color: #6c757d;
+        font-size: 0.9em;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 10px;
+        color: #6c757d;
+        font-size: 0.9em;
+      }
+
+      .compact-stats {
+        display: flex;
+        justify-content: space-around;
+        background: #e9ecef;
+        padding: 4px;
+        border-radius: 3px;
+        margin-bottom: 8px;
+        font-size: 0.75em;
+      }
+
+      .stat-item {
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 1em;
+        font-weight: bold;
+        color: #2c3e50;
+      }
+
+      .stat-label {
+        font-size: 0.7em;
+        color: #6c757d;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="filters-section">
+        <div class="compact-stats">
+          <div class="stat-item">
+            <div class="stat-value" id="totalTokens">0</div>
+            <div class="stat-label">Tokens</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="totalExchanges">0</div>
+            <div class="stat-label">Exchanges</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="updateCount">0</div>
+            <div class="stat-label">Updates</div>
+          </div>
+        </div>
+
+        <div class="filters-grid">
+          <div class="filter-group">
+            <label for="deltaPeriod">Delta Period</label>
+            <select id="deltaPeriod">
+              <option value="1m">1m</option>
+              <option value="5m">5m</option>
+              <option value="15m">15m</option>
+              <option value="1h" selected>1h</option>
+              <option value="4h">4h</option>
+              <option value="1d">1d</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="volPeriod">Volume Period</label>
+            <select id="volPeriod">
+              <option value="1m">1m</option>
+              <option value="5m">5m</option>
+              <option value="15m">15m</option>
+              <option value="1h" selected>1h</option>
+              <option value="4h">4h</option>
+              <option value="1d">1d</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="tradePeriod">Trade Period</label>
+            <select id="tradePeriod">
+              <option value="1m">1m</option>
+              <option value="5m">5m</option>
+              <option value="15m">15m</option>
+              <option value="1h" selected>1h</option>
+              <option value="4h">4h</option>
+              <option value="1d">1d</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="natrPeriod">NATR Period</label>
+            <select id="natrPeriod">
+              <option value="1m">1m</option>
+              <option value="5m">5m</option>
+              <option value="15m">15m</option>
+              <option value="1h" selected>1h</option>
+              <option value="4h">4h</option>
+              <option value="1d">1d</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="spreadPeriod">Spread Period</label>
+            <select id="spreadPeriod">
+              <option value="1m">1m</option>
+              <option value="5m">5m</option>
+              <option value="15m">15m</option>
+              <option value="1h" selected>1h</option>
+              <option value="4h">4h</option>
+              <option value="1d">1d</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="activityPeriod">Activity Period</label>
+            <select id="activityPeriod">
+              <option value="1m">1m</option>
+              <option value="5m">5m</option>
+              <option value="15m">15m</option>
+              <option value="1h" selected>1h</option>
+              <option value="4h">4h</option>
+              <option value="1d">1d</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filters-grid">
+          <div class="filter-group">
+            <label for="deltaThreshold">Delta Threshold</label>
+            <input
+              type="number"
+              id="deltaThreshold"
+              step="0.0001"
+              value="0"
+              placeholder="0.0001"
+            />
+          </div>
+          <div class="filter-group">
+            <label for="volThreshold">Volume Threshold</label>
+            <input
+              type="number"
+              id="volThreshold"
+              step="0.01"
+              value="0"
+              placeholder="1000"
+            />
+          </div>
+          <div class="filter-group">
+            <label for="tradeThreshold">Trade Threshold</label>
+            <input
+              type="number"
+              id="tradeThreshold"
+              step="1"
+              value="0"
+              placeholder="10"
+            />
+          </div>
+          <div class="filter-group">
+            <label for="natrThreshold">NATR Threshold</label>
+            <input
+              type="number"
+              id="natrThreshold"
+              step="0.0001"
+              value="0"
+              placeholder="0.0001"
+            />
+          </div>
+          <div class="filter-group">
+            <label for="spreadThreshold">Spread Threshold</label>
+            <input
+              type="number"
+              id="spreadThreshold"
+              step="0.0001"
+              value="0"
+              placeholder="0.0001"
+            />
+          </div>
+          <div class="filter-group">
+            <label for="activityThreshold">Activity Threshold</label>
+            <input
+              type="number"
+              id="activityThreshold"
+              step="0.01"
+              value="0"
+              placeholder="1.0"
+            />
+          </div>
+        </div>
+
+        <div class="filter-buttons">
+          <button class="refresh-btn" onclick="applyFilters()">
+            Apply Filters
+          </button>
+          <button class="refresh-btn" onclick="resetFilters()">
+            Reset Filters
+          </button>
+        </div>
+      </div>
+
+      <div class="tokens-data-section">
+        <table class="data-table" id="tokensTable" style="display: none">
+          <thead>
+            <tr>
+              <th>Exchange</th>
+              <th>Symbol</th>
+              <th>Delta</th>
+              <th>Volume</th>
+              <th>Trades</th>
+              <th>NATR</th>
+              <th>Spread</th>
+              <th>Activity</th>
+            </tr>
+          </thead>
+          <tbody id="tokensTableBody"></tbody>
+        </table>
+        <div id="tokensContainer"></div>
+      </div>
+    </div>
+
+    <script>
+      // Load tokens data
+      async function loadTokensData() {
+        const loadingIndicator = document.getElementById("loadingIndicator");
+        const tokensContainer = document.getElementById("tokensContainer");
+
+        try {
+          const response = await fetch("/api/data");
+          const data = await response.json();
+
+          if (data && Object.keys(data).length > 0) {
+            renderTokensData(data);
+            updateStats(data);
+            updateCount();
+          } else {
+            const tokensTable = document.getElementById("tokensTable");
+            const tokensContainer = document.getElementById("tokensContainer");
+            tokensTable.style.display = "none";
+            tokensContainer.style.display = "block";
+            tokensContainer.innerHTML =
+              '<div class="no-data"><h3>No token data available</h3><p>Make sure the tokens analyzer is running and generating data.</p></div>';
+          }
+        } catch (error) {
+          console.error("Error loading tokens data:", error);
+          const tokensTable = document.getElementById("tokensTable");
+          const tokensContainer = document.getElementById("tokensContainer");
+          tokensTable.style.display = "none";
+          tokensContainer.style.display = "block";
+          tokensContainer.innerHTML =
+            '<div class="no-data"><h3>Error loading data</h3><p>Please try again.</p></div>';
+        }
+      }
+
+      // Update count
+      function updateCount() {
+        const updateCount = document.getElementById("updateCount");
+        const current = parseInt(updateCount.textContent) || 0;
+        updateCount.textContent = current + 1;
+      }
+
+      // Apply filters
+      async function applyFilters() {
+        const periods = {
+          delta: document.getElementById("deltaPeriod").value,
+          vol: document.getElementById("volPeriod").value,
+          trade: document.getElementById("tradePeriod").value,
+          NATR: document.getElementById("natrPeriod").value,
+          spread: document.getElementById("spreadPeriod").value,
+          activity: document.getElementById("activityPeriod").value,
+        };
+
+        const thresholds = {
+          delta:
+            parseFloat(document.getElementById("deltaThreshold").value) || 0,
+          vol: parseFloat(document.getElementById("volThreshold").value) || 0,
+          trade: parseInt(document.getElementById("tradeThreshold").value) || 0,
+          NATR: parseFloat(document.getElementById("natrThreshold").value) || 0,
+          spread:
+            parseFloat(document.getElementById("spreadThreshold").value) || 0,
+          activity:
+            parseFloat(document.getElementById("activityThreshold").value) || 0,
+        };
+
+        try {
+          const response = await fetch("/api/update-filters", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ periods, thresholds }),
+          });
+
+          if (response.ok) {
+            console.log("Filters applied successfully");
+            loadTokensData();
+          } else {
+            console.error("Failed to apply filters");
+          }
+        } catch (error) {
+          console.error("Error applying filters:", error);
+        }
+      }
+
+      // Reset filters
+      function resetFilters() {
+        document.getElementById("deltaPeriod").value = "1h";
+        document.getElementById("volPeriod").value = "1h";
+        document.getElementById("tradePeriod").value = "1h";
+        document.getElementById("natrPeriod").value = "1h";
+        document.getElementById("spreadPeriod").value = "1h";
+        document.getElementById("activityPeriod").value = "1h";
+
+        document.getElementById("deltaThreshold").value = "0";
+        document.getElementById("volThreshold").value = "0";
+        document.getElementById("tradeThreshold").value = "0";
+        document.getElementById("natrThreshold").value = "0";
+        document.getElementById("spreadThreshold").value = "0";
+        document.getElementById("activityThreshold").value = "0";
+
+        applyFilters();
+      }
+
+      // Render tokens data
+      function renderTokensData(data) {
+        const tokensTable = document.getElementById("tokensTable");
+        const tokensTableBody = document.getElementById("tokensTableBody");
+        const tokensContainer = document.getElementById("tokensContainer");
+
+        // Hide old container, show table
+        tokensContainer.style.display = "none";
+        tokensTable.style.display = "table";
+
+        let html = "";
+
+        for (const [exchange, tokens] of Object.entries(data)) {
+          for (const [symbol, metrics] of Object.entries(tokens)) {
+            html += `
+              <tr>
+                <td class="exchange-cell">${exchange.toUpperCase()}</td>
+                <td class="symbol-cell">${symbol.toUpperCase()}</td>
+                <td class="metric-cell">${metrics.delta.toFixed(4)}</td>
+                <td class="metric-cell">${metrics.vol.toFixed(2)}</td>
+                <td class="metric-cell">${metrics.trade}</td>
+                <td class="metric-cell">${metrics.NATR.toFixed(4)}</td>
+                <td class="metric-cell">${metrics.spread.toFixed(4)}</td>
+                <td class="metric-cell">${metrics.activity.toFixed(2)}</td>
+              </tr>
+            `;
+          }
+        }
+
+        tokensTableBody.innerHTML = html;
+      }
+
+      // Update stats
+      function updateStats(data) {
+        const totalTokens = Object.values(data).reduce(
+          (sum, tokens) => sum + Object.keys(tokens).length,
+          0
+        );
+        const totalExchanges = Object.keys(data).length;
+
+        document.getElementById("totalTokens").textContent = totalTokens;
+        document.getElementById("totalExchanges").textContent = totalExchanges;
+      }
+
+      // Auto-refresh data every 1 second
+      setInterval(loadTokensData, 1000);
+
+      // Load data on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        loadTokensData();
+      });
+    </script>
+  </body>
+</html>

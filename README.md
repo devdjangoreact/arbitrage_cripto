@@ -19,6 +19,7 @@ A comprehensive cryptocurrency arbitrage detection and analysis system that moni
 - [Configuration](#configuration)
 - [Environment Setup](#environment-setup)
 - [Exchange Configuration](#exchange-configuration)
+- [MCP Setup](#mcp-setup)
 - [Usage](#usage)
 - [API Documentation](#api-documentation)
 - [Project Structure](#project-structure)
@@ -42,20 +43,15 @@ A comprehensive cryptocurrency arbitrage detection and analysis system that moni
    pip install -r requirements.txt
    ```
 
-3. **Set up environment:**
+3. **Configure API keys:**
 
    ```bash
-   python setup_env.py
-   ```
-
-4. **Configure API keys:**
-
-   ```bash
+   # The .env file will be created automatically from .env-example
    # Edit .env file with your API keys
    nano .env
    ```
 
-5. **Run the application:**
+4. **Run the application:**
    ```bash
    python main.py
    ```
@@ -159,10 +155,10 @@ The system uses a JSON-based configuration file (`config.json`) for all settings
 
 ### Quick Setup
 
-1. **Create environment file:**
+1. **Run the application (creates .env automatically):**
 
    ```bash
-   python setup_env.py --create
+   python main.py
    ```
 
 2. **Edit with your API keys:**
@@ -171,9 +167,9 @@ The system uses a JSON-based configuration file (`config.json`) for all settings
    nano .env
    ```
 
-3. **Validate configuration:**
+3. **Run again to use your API keys:**
    ```bash
-   python setup_env.py --validate
+   python main.py
    ```
 
 ### Manual Setup
@@ -186,9 +182,9 @@ The system uses a JSON-based configuration file (`config.json`) for all settings
 
 2. **Edit .env file with your API keys**
 
-3. **Test configuration:**
+3. **Run the application:**
    ```bash
-   python setup_env.py --validate
+   python main.py
    ```
 
 ### Supported Exchanges
@@ -278,10 +274,10 @@ To use different exchanges, simply modify the `exchanges` array in `config.json`
 
 ### Testing Exchange Configuration
 
-Run the test script to verify which exchanges are initialized:
+The application will automatically show which exchanges are initialized when you run it:
 
 ```bash
-python setup_env.py --validate
+python main.py
 ```
 
 This will show:
@@ -289,6 +285,116 @@ This will show:
 - Which exchanges are configured in `config.json`
 - Which exchanges were actually initialized
 - Any errors during initialization
+
+## 🔧 MCP Setup
+
+This project includes support for Model Context Protocol (MCP) integration with Cursor IDE for enhanced AI-powered mobile automation capabilities.
+
+### Prerequisites
+
+- Node.js installed on your system
+- Cursor IDE
+- Mobile device or emulator for testing
+
+### Installation
+
+1. **Install Appium MCP globally:**
+
+   ```bash
+   npm install -g appium-mcp
+   ```
+
+2. **Install Appium server:**
+
+   ```bash
+   npm install -g appium
+   ```
+
+3. **MCP Configuration is automatically set up:**
+
+   The MCP configuration file has been created at:
+
+   ```
+   C:\Users\[username]\AppData\Roaming\Cursor\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json
+   ```
+
+### Mobile Device Setup
+
+#### Android Setup
+
+1. **Enable Developer Options:**
+
+   - Go to Settings > About Phone
+   - Tap "Build Number" 7 times
+   - Go back to Settings > Developer Options
+   - Enable "USB Debugging"
+
+2. **Connect Device:**
+   ```bash
+   # Connect via USB or start emulator
+   adb devices
+   ```
+
+#### iOS Setup (macOS only)
+
+1. **Install Xcode command line tools:**
+
+   ```bash
+   xcode-select --install
+   ```
+
+2. **Set up iOS simulator or connect real device**
+
+### Usage
+
+1. **Start Appium server:**
+
+   ```bash
+   appium
+   ```
+
+2. **Restart Cursor IDE** to load the MCP configuration
+
+3. **Use MCP features in Cursor:**
+   - The Appium MCP server will be available for AI-powered mobile automation
+   - You can now use natural language commands for mobile testing and automation
+
+### Configuration
+
+The MCP server is configured with the following settings:
+
+```json
+{
+  "mcpServers": {
+    "appium-mcp": {
+      "command": "npx",
+      "args": ["appium-mcp"],
+      "autoApprove": [],
+      "timeout": 300,
+      "transportType": "stdio",
+      "disabled": false
+    }
+  }
+}
+```
+
+### Troubleshooting MCP
+
+1. **MCP not working:**
+
+   - Ensure Node.js is installed
+   - Check if `appium-mcp` is installed globally
+   - Restart Cursor IDE after configuration
+
+2. **Device not detected:**
+
+   - Check USB debugging is enabled (Android)
+   - Verify device connection with `adb devices`
+   - Ensure Appium server is running
+
+3. **Configuration issues:**
+   - Verify the MCP settings file exists in the correct location
+   - Check file permissions and JSON syntax
 
 ## 📊 Usage
 
@@ -487,8 +593,6 @@ arbitrage_cripto/
 ├── exchanges_ws.py             # WebSocket exchange manager
 ├── logger.py                   # Logging configuration
 ├── settings.py                 # Settings management
-├── env_loader.py               # Environment variables loader
-├── setup_env.py                # Environment setup script
 ├── config.json                 # Main configuration file
 ├── .env-example                # Environment variables template
 ├── .env                        # Environment variables (create from template)

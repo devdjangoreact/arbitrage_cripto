@@ -2,11 +2,13 @@ import asyncio
 import json
 import statistics
 import time
+import traceback
 from collections import defaultdict, deque
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Any, Deque, Dict, List, Optional
 
-from ..logger import get_logger
+from utils.logger import get_logger
+from utils.settings import get_settings
 
 
 class TokensAnalyzer:
@@ -17,23 +19,28 @@ class TokensAnalyzer:
 
     def __init__(
         self,
-        last_prices_collection=None,
-        output_path="data/tokens_analyzer.json",
-        test_mode=False,
-        periods: dict[str, str] = None,
-        thresholds: dict[str, float] = None,
+        last_prices_collection: Optional[List[Dict[str, Any]]] = None,
+        output_path: str = "data/tokens_analyzer.json",
+        test_mode: bool = False,
+        periods: Optional[Dict[str, str]] = None,
+        thresholds: Optional[Dict[str, float]] = None,
+        save_to_file: bool = True,
+        symbols: Optional[List[str]] = None,
     ):
         self.last_prices_collection = last_prices_collection
         self.output_path = output_path
         self.logger = get_logger()
         self._test_mode = test_mode
+        self.save_to_file = save_to_file
+        self.symbols = symbols or get_settings().symbols
 
         # Buffers for storing historical data
-        self.price_history = defaultdict(
+        self.price_history: Dict[str, Dict[str, Deque[Dict]]] = defaultdict(
             lambda: defaultdict(deque)
         )  # {exchange: {symbol: deque}}
-        self.volume_history = defaultdict(lambda: defaultdict(deque))
-        self.trade_history = defaultdict(lambda: defaultdict(deque))
+        self.volume_history: Dict[str, Dict[str, Deque[Dict]]] = defaultdict(lambda: defaultdict(deque))
+        self.trade_history: Dict[str, Dict[str, Deque[Dict]]] = defaultdict(lambda: defaultdict(deque))
+        self._last_processed_length: int = 0
 
         self.periods = periods or {
             "delta": "1h",
@@ -71,7 +78,7 @@ class TokensAnalyzer:
             # Find the latest timestamp from data
             if self.last_prices_collection:
                 latest_timestamp = max(
-                    entry.get("timestamp", 0)
+                    int(entry.get("timestamp", 0))
                     for entry in self.last_prices_collection
                     if isinstance(entry, dict) and "timestamp" in entry
                 )
@@ -97,8 +104,8 @@ class TokensAnalyzer:
             return 0.0001
 
         # Take first and last price in period
-        first_price = prices[0].get("price", 0)
-        last_price = prices[-1].get("price", 0)
+        first_price = float(prices[0].get("price", 0))
+        last_price = float(prices[-1].get("price", 0))
 
         if first_price == 0:
             return 0.0
@@ -107,7 +114,7 @@ class TokensAnalyzer:
 
     def _calculate_volume(self, volumes: List[Dict]) -> float:
         """Calculate total trading volume."""
-        return sum(item.get("volume", 0) for item in volumes)
+        return sum(float(item.get("volume", 0)) for item in volumes)
 
     def _calculate_trade_count(self, trades: List[Dict]) -> int:
         """Calculate number of trades."""
@@ -123,9 +130,9 @@ class TokensAnalyzer:
 
         true_ranges = []
         for i in range(1, len(sorted_prices)):
-            high = sorted_prices[i].get("high", sorted_prices[i].get("price", 0))
-            low = sorted_prices[i].get("low", sorted_prices[i].get("price", 0))
-            prev_close = sorted_prices[i - 1].get("price", 0)
+            high = float(sorted_prices[i].get("high", sorted_prices[i].get("price", 0)))
+            low = float(sorted_prices[i].get("low", sorted_prices[i].get("price", 0)))
+            prev_close = float(sorted_prices[i - 1].get("price", 0))
 
             tr1 = high - low
             tr2 = abs(high - prev_close)
@@ -137,12 +144,8 @@ class TokensAnalyzer:
         if not true_ranges:
             return 0.0
 
-        atr = (
-            statistics.mean(true_ranges[-period:])
-            if len(true_ranges) >= period
-            else statistics.mean(true_ranges)
-        )
-        current_price = sorted_prices[-1].get("price", 1)
+        atr = statistics.mean(true_ranges[-period:]) if len(true_ranges) >= period else statistics.mean(true_ranges)
+        current_price = float(sorted_prices[-1].get("price", 1))
 
         return atr / current_price if current_price > 0 else 0.0
 
@@ -153,16 +156,10 @@ class TokensAnalyzer:
 
         # Take latest data
         last_data = prices[-1]
-        ask = (
-            last_data.get("ask", [0, 0])[0]
-            if isinstance(last_data.get("ask"), list)
-            else last_data.get("ask", 0)
-        )
-        bid = (
-            last_data.get("bid", [0, 0])[0]
-            if isinstance(last_data.get("bid"), list)
-            else last_data.get("bid", 0)
-        )
+        ask_val = last_data.get("ask")
+        ask = float(ask_val[0] if isinstance(ask_val, list) else ask_val if ask_val is not None else 0)
+        bid_val = last_data.get("bid")
+        bid = float(bid_val[0] if isinstance(bid_val, list) else bid_val if bid_val is not None else 0)
 
         if ask == 0 or bid == 0:
             return 0.0
@@ -180,9 +177,7 @@ class TokensAnalyzer:
         # Calculate average interval between updates
         intervals = []
         for i in range(1, len(sorted_prices)):
-            interval = sorted_prices[i].get("timestamp", 0) - sorted_prices[i - 1].get(
-                "timestamp", 0
-            )
+            interval = sorted_prices[i].get("timestamp", 0) - sorted_prices[i - 1].get("timestamp", 0)
             intervals.append(interval)
 
         if not intervals:
@@ -193,10 +188,15 @@ class TokensAnalyzer:
 
     async def _analyze_file_data(self):
         """Analyze data from last_prices_ws.json file before switching to real data."""
+        # Only read from file if save_to_file is True
+        if not self.save_to_file:
+            self.logger.info("File reading disabled (save_to_file=False). Skipping file analysis.")
+            return
+
         file_path = "data/last_prices_ws.json"
         try:
             self.logger.info(f"Loading data from {file_path}...")
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path) as f:
                 file_data = []
                 for line in f:
                     if line.strip():
@@ -216,15 +216,11 @@ class TokensAnalyzer:
 
                 # Perform analysis with data from file
                 self.logger.info("Analyzing file data...")
-                result = self.filter_and_save(
-                    output_path="data/tokens_analyzer_file.json"
-                )
+                result = self.filter_and_save(output_path="data/tokens_analyzer_file.json")
 
                 # Log file analysis result
                 total_tokens = sum(len(tokens) for tokens in result.values())
-                self.logger.info(
-                    f"File analysis completed. Found {total_tokens} tokens across {len(result)} exchanges"
-                )
+                self.logger.info(f"File analysis completed. Found {total_tokens} tokens across {len(result)} exchanges")
 
                 for exchange, tokens in result.items():
                     if tokens:
@@ -247,7 +243,7 @@ class TokensAnalyzer:
 
     def _round_metrics(self, data: Dict) -> Dict:
         """Round all numeric values in results to 4 decimal places."""
-        rounded_data = {}
+        rounded_data: Dict[str, Any] = {}
         for exchange, tokens in data.items():
             rounded_data[exchange] = {}
             for symbol, metrics in tokens.items():
@@ -261,16 +257,18 @@ class TokensAnalyzer:
 
     def _extract_symbol_from_data(self, entry: Dict) -> str:
         """Extract token symbol from data record."""
-        symbol = entry.get("symbol", "")
-        if "/" in symbol:
-            return symbol.split("/")[0].lower()  # BTC from BTC/USDT
-        return symbol.lower()
+        symbol = str(entry.get("symbol", ""))
+        # Check if this symbol is in our symbols list
+        if symbol in self.symbols:
+            if "/" in symbol:
+                return symbol.split("/")[0].lower()  # BTC from BTC/USDT
+            return symbol.lower()
+        return ""
 
     def _process_price_data(self, entry: Dict):
         """Process price data and add to history."""
         exchange = entry.get("exchange")
         symbol = self._extract_symbol_from_data(entry)
-        timestamp = entry.get("timestamp", 0)
 
         if not exchange or not symbol:
             return
@@ -302,17 +300,7 @@ class TokensAnalyzer:
         else:
             return
 
-        # Add to price history
-        price_data = {
-            "timestamp": timestamp,
-            "price": price,
-            "ask": ask,
-            "bid": bid,
-            "high": max(ask_price, bid_price),
-            "low": min(ask_price, bid_price),
-        }
-
-        self.price_history[exchange][symbol].append(price_data)
+        self.price_history[exchange][symbol].append({"price": price, "timestamp": int(time.time() * 1000)})
 
         # Limit buffer size (keep data for last 24 hours)
         max_size = 86400  # 24 hours in seconds
@@ -328,15 +316,13 @@ class TokensAnalyzer:
             volume = 0
 
         # Always add volume (even if 0)
-        volume_data = {"timestamp": timestamp, "volume": volume}
-        self.volume_history[exchange][symbol].append(volume_data)
+        self.volume_history[exchange][symbol].append({"volume": volume, "timestamp": int(time.time() * 1000)})
 
         while len(self.volume_history[exchange][symbol]) > max_size:
             self.volume_history[exchange][symbol].popleft()
 
         # Add to trade history (each price update = trade)
-        trade_data = {"timestamp": timestamp, "price": price, "volume": volume}
-        self.trade_history[exchange][symbol].append(trade_data)
+        self.trade_history[exchange][symbol].append({"count": 1, "timestamp": int(time.time() * 1000)})
 
         while len(self.trade_history[exchange][symbol]) > max_size:
             self.trade_history[exchange][symbol].popleft()
@@ -347,15 +333,9 @@ class TokensAnalyzer:
         result = {}
 
         # Get data for required periods
-        price_data = self._filter_by_period(
-            self.price_history[exchange][symbol], self.periods.get("delta", "1h")
-        )
-        volume_data = self._filter_by_period(
-            self.volume_history[exchange][symbol], self.periods.get("vol", "1h")
-        )
-        trade_data = self._filter_by_period(
-            self.trade_history[exchange][symbol], self.periods.get("trade", "1h")
-        )
+        price_data = self._filter_by_period(self.price_history[exchange][symbol], self.periods.get("delta", "1h"))
+        volume_data = self._filter_by_period(self.volume_history[exchange][symbol], self.periods.get("vol", "1h"))
+        trade_data = self._filter_by_period(self.trade_history[exchange][symbol], self.periods.get("trade", "1h"))
 
         # Calculate metrics
         result["delta"] = self._calculate_delta(price_data)
@@ -367,7 +347,7 @@ class TokensAnalyzer:
 
         return result
 
-    def filter_and_save(self, output_path: str = None) -> Dict:
+    def filter_and_save(self, output_path: Optional[str] = None) -> Dict:
         """
         Фільтрувати токени за метриками та зберегти результат.
 
@@ -380,23 +360,13 @@ class TokensAnalyzer:
         if output_path is None:
             output_path = self.output_path
 
-        result = {}
+        result: Dict[str, Any] = {}
 
         # Process data from collection (only if not yet processed)
         if self.last_prices_collection and not hasattr(self, "_data_processed"):
-            self.logger.info(
-                f"Processing {len(self.last_prices_collection)} records from collection..."
-            )
+            self.logger.info(f"Processing {len(self.last_prices_collection)} records from collection...")
             for entry in self.last_prices_collection:
-                if isinstance(entry, dict):
-                    self._process_price_data(entry)
-                elif isinstance(entry, str):
-                    try:
-                        data = json.loads(entry)
-                        if isinstance(data, dict):
-                            self._process_price_data(data)
-                    except Exception:
-                        continue
+                self._process_price_data(entry)
             self._data_processed = True
 
         # Calculate metrics for all exchanges and tokens
@@ -412,10 +382,7 @@ class TokensAnalyzer:
                         metrics["delta"] >= self.thresholds["delta"]
                         and metrics["vol"] >= self.thresholds["vol"]
                         and metrics["trade"] >= self.thresholds["trade"]
-                        and (
-                            metrics["NATR"] >= self.thresholds["NATR"]
-                            or metrics["NATR"] == 0
-                        )
+                        and (metrics["NATR"] >= self.thresholds["NATR"] or metrics["NATR"] == 0)
                         and metrics["spread"] >= self.thresholds["spread"]
                         and metrics["activity"] >= self.thresholds["activity"]
                     ):
@@ -423,21 +390,20 @@ class TokensAnalyzer:
                         result[exchange][symbol] = metrics
 
                 except Exception as e:
-                    self.logger.error(
-                        f"Error calculating metrics for {exchange}:{symbol}: {e}"
-                    )
+                    self.logger.error(f"Error calculating metrics for {exchange}:{symbol}: {traceback.format_exc(e)}")
                     continue
 
         # Round all numeric values to 4 decimal places
         rounded_result = self._round_metrics(result)
 
-        # Save result
-        try:
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(rounded_result, f, indent=2, ensure_ascii=False)
-            self.logger.info(f"Tokens analysis saved to {output_path}")
-        except Exception as e:
-            self.logger.error(f"Error saving tokens analysis: {e}")
+        # Save result only if save_to_file is True
+        if self.save_to_file:
+            try:
+                with open(output_path, "w", encoding="utf-8") as f:
+                    json.dump(rounded_result, f, indent=2, ensure_ascii=False)
+                self.logger.info(f"Tokens analysis saved to {output_path}")
+            except Exception as e:
+                self.logger.error(f"Error saving tokens analysis: {e}")
 
         return result
 
@@ -451,6 +417,9 @@ class TokensAnalyzer:
         # Wait a bit for new data to accumulate
         await asyncio.sleep(5)
 
+        # Start a separate task for 10-second logging
+        asyncio.create_task(self._log_data_every_10_seconds())
+
         while True:
             try:
                 # Process new data (only new records)
@@ -461,22 +430,10 @@ class TokensAnalyzer:
                     # If there are new records, process them
                     if hasattr(self, "_last_processed_length"):
                         if current_length > self._last_processed_length:
-                            new_entries = self.last_prices_collection[
-                                self._last_processed_length :
-                            ]
-                            self.logger.info(
-                                f"Processing {len(new_entries)} new real-time entries..."
-                            )
+                            new_entries = self.last_prices_collection[self._last_processed_length :]
+                            self.logger.info(f"Processing {len(new_entries)} new real-time entries...")
                             for entry in new_entries:
-                                if isinstance(entry, dict):
-                                    self._process_price_data(entry)
-                                elif isinstance(entry, str):
-                                    try:
-                                        data = json.loads(entry)
-                                        if isinstance(data, dict):
-                                            self._process_price_data(data)
-                                    except Exception:
-                                        continue
+                                self._process_price_data(entry)
                     else:
                         # Set initial length after file processing
                         self._last_processed_length = current_length
@@ -496,6 +453,49 @@ class TokensAnalyzer:
                 self.logger.error(f"Error in tokens analyzer: {e}")
                 await asyncio.sleep(interval)
 
+    async def _log_data_every_10_seconds(self):
+        """Log token analyzer data every 10 seconds."""
+        while True:
+            try:
+                await asyncio.sleep(10)  # Wait 10 seconds
+
+                # Get current data
+                result = self.filter_and_save()
+
+                if result:
+                    total_tokens = sum(len(tokens) for tokens in result.values())
+                    self.logger.info("=" * 60)
+                    self.logger.info(f"📊 TOKEN ANALYZER DATA UPDATE - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                    self.logger.info(f"Total tokens: {total_tokens} across {len(result)} exchanges")
+
+                    # Log details for each exchange
+                    for exchange, tokens in result.items():
+                        if tokens:
+                            self.logger.info(f"  📈 {exchange.upper()}: {len(tokens)} tokens")
+
+                            # Log top 3 tokens by delta for each exchange
+                            sorted_tokens = sorted(
+                                tokens.items(),
+                                key=lambda x: x[1].get("delta", 0),
+                                reverse=True,
+                            )
+                            for i, (symbol, metrics) in enumerate(sorted_tokens[:3]):
+                                self.logger.info(
+                                    f"    {i+1}. {symbol.upper()}: "
+                                    f"Δ={metrics.get('delta', 0):.4f}, "
+                                    f"Vol={metrics.get('vol', 0):.2f}, "
+                                    f"Trades={metrics.get('trade', 0)}, "
+                                    f"NATR={metrics.get('NATR', 0):.4f}"
+                                )
+
+                    self.logger.info("=" * 60)
+                else:
+                    self.logger.info("📊 No token data available for logging")
+
+            except Exception as e:
+                self.logger.error(f"Error in 10-second logging: {e}")
+                await asyncio.sleep(10)
+
 
 # Function for backward compatibility
 def filter_and_save(data, output_path="data/tokens_analyzer.json"):
@@ -508,7 +508,7 @@ def filter_and_save(data, output_path="data/tokens_analyzer.json"):
     # If data is provided, process it
     if data:
         for exchange, coins in data.items():
-            for coin, metrics in coins.items():
+            for coin, _ in coins.items():
                 # Create fake data for testing
                 fake_entry = {
                     "exchange": exchange,
