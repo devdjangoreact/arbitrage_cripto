@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Order Book Component</title>
+    <style>
+      .order-book-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        width: 100%;
+      }
+
+      .order-book-section {
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        padding: 15px;
+        background: #f8f9fa;
+      }
+
+      .order-book-section h5 {
+        margin: 0 0 15px 0;
+        color: #495057;
+        font-size: 14px;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .order-book-data {
+        max-height: 300px;
+        overflow-y: auto;
+        background: white;
+        border-radius: 4px;
+        padding: 10px;
+      }
+
+      .order-book-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 6px 8px;
+        border-bottom: 1px solid #f1f3f4;
+        font-family: "Courier New", monospace;
+        font-size: 13px;
+        transition: background-color 0.2s ease;
+      }
+
+      .order-book-row:hover {
+        background: #f8f9fa;
+      }
+
+      .order-book-row:last-child {
+        border-bottom: none;
+      }
+
+      .order-book-row .price {
+        color: #dc3545;
+        font-weight: 600;
+        text-align: left;
+      }
+
+      .order-book-row .quantity {
+        color: #28a745;
+        text-align: right;
+        font-weight: 500;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #6c757d;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="order-book-container">
+      <div class="order-book-section">
+        <h5>Bids - {{symbol|default(currentSymbolContext or 'BTC/USDT')}}</h5>
+        <div
+          class="order-book-data"
+          id="bids-{{symbol|default(currentSymbolContext or 'BTCUSDT')}}"
+        >
+          <div class="loading">Loading order book data...</div>
+        </div>
+      </div>
+      <div class="order-book-section">
+        <h5>Asks - {{symbol|default(currentSymbolContext or 'BTC/USDT')}}</h5>
+        <div
+          class="order-book-data"
+          id="asks-{{symbol|default(currentSymbolContext or 'BTCUSDT')}}"
+        >
+          <div class="loading">Loading order book data...</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

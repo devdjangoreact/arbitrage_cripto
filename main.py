@@ -1,4 +1,3 @@
-import argparse
 import asyncio
 import traceback
 
@@ -6,11 +5,12 @@ from app.arbitrage_analyzer import AnalyzeArbitrage
 from app.exchanges_ws import ExchangesWS
 from app.token_analyzer import TokensAnalyzer
 from app.web_server import WebServer
+from desktop.main import DesktopApp
 from utils.logger import get_logger
 from utils.settings import get_settings
 
 
-async def main(enable_web_server=False, web_host="0.0.0.0", web_port=8000):
+async def main():
     # Load configuration using settings (environment is initialized automatically)
     settings = get_settings()
 
@@ -47,29 +47,31 @@ async def main(enable_web_server=False, web_host="0.0.0.0", web_port=8000):
         symbols=symbols,
     )
 
-    # Initialize web server if enabled
-    web_server = None
-    if enable_web_server:
-        web_server = WebServer(
-            host=web_host,
-            port=web_port,
-            last_prices_collection=ws_exchanges.last_prices,
-            save_to_file=settings.tokens_save_to_file,
-            tokens_analyzer=tokens_analyzer,
-        )
-        logger.info(f"Web server enabled on {web_host}:{web_port}")
-
     try:
         # Prepare tasks
-        tasks = [
-            ws_exchanges.stream_futures(symbols),
-            analyzer.run(),
-            tokens_analyzer.run(interval=settings.tokens_interval),
-        ]
+        tasks = []
+        tasks.append(ws_exchanges.stream_futures(symbols))
+        tasks.append(analyzer.run())
+        tasks.append(tokens_analyzer.run(interval=settings.tokens_interval))
 
         # Add web server task if enabled
-        if web_server:
+        if settings.web_server:
+            web_host = settings.web_server_host
+            web_port = settings.web_server_port
+            web_server = WebServer(
+                host=web_host,
+                port=web_port,
+                last_prices_collection=ws_exchanges.last_prices,
+                save_to_file=settings.tokens_save_to_file,
+                tokens_analyzer=tokens_analyzer,
+            )
+            logger.info(f"Web server enabled on {web_host}:{web_port}")
             tasks.append(web_server.start())
+
+        # if settings.desktop:
+        #     desktop_app = DesktopApp()
+        #     tasks.append(desktop_app.run())
+        #     logger.info("Desktop app enabled")
 
         # Start all tasks in parallel
         await asyncio.gather(*tasks)
@@ -82,13 +84,5 @@ async def main(enable_web_server=False, web_host="0.0.0.0", web_port=8000):
 
 
 if __name__ == "__main__":
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description="Crypto Arbitrage Analyzer")
-    parser.add_argument("--web", action="store_true", help="Enable web server")
-    parser.add_argument("--web-host", default="0.0.0.0", help="Web server host (default: 0.0.0.0)")
-    parser.add_argument("--web-port", type=int, default=8000, help="Web server port (default: 8000)")
-
-    args = parser.parse_args()
-
     # Run main with web server options
-    asyncio.run(main(enable_web_server=args.web, web_host=args.web_host, web_port=args.web_port))
+    asyncio.run(main())

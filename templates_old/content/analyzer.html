@@ -156,27 +156,26 @@
         <button class="refresh-btn" onclick="resetFilters()">
           Reset Filters
         </button>
+        <button
+          class="refresh-btn manual-refresh-btn"
+          onclick="manualRefresh()"
+        >
+          🔄 Refresh Data
+        </button>
       </div>
     </div>
 
     <!-- Tokens Analyzer Section -->
     <div class="tokens-data-section">
-      <table class="data-table" id="tokensTable" style="display: none">
-        <thead>
-          <tr>
-            <th>Exchange</th>
-            <th>Symbol</th>
-            <th>Delta</th>
-            <th>Volume</th>
-            <th>Trades</th>
-            <th>NATR</th>
-            <th>Spread</th>
-            <th>Activity</th>
-          </tr>
-        </thead>
-        <tbody id="tokensTableBody"></tbody>
-      </table>
-      <div id="tokensContainer"></div>
+      <div class="accordion" id="symbolsAccordion">
+        <!-- Accordion items will be populated by JavaScript -->
+      </div>
+      <div id="noDataContainer" style="display: none">
+        <div class="no-data">
+          <h3>No token data available</h3>
+          <p>Make sure the tokens analyzer is running and generating data.</p>
+        </div>
+      </div>
     </div>
   </div>
 </div>

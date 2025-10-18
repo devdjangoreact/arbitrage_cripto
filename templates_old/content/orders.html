@@ -6,6 +6,136 @@
   </div>
 
   <div class="orders-content">
+    <!-- Add Order Form -->
+    <div class="add-order-form" id="addOrderForm" style="display: none">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="newOrderSymbol">Symbol</label>
+          <select id="newOrderSymbol" name="newOrderSymbol">
+            <option value="">Select Symbol</option>
+            <!-- Options will be populated by JavaScript -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="newOrderExchange">Exchange</label>
+          <select id="newOrderExchange" name="newOrderExchange">
+            <option value="">Select Exchange</option>
+            <option value="gate">Gate</option>
+            <option value="bitget">Bitget</option>
+            <option value="bingx">BingX</option>
+            <option value="mexc">MEXC</option>
+            <option value="kraken">Kraken</option>
+            <option value="coinbase">Coinbase</option>
+            <option value="binance">Binance</option>
+            <option value="okx">OKX</option>
+            <option value="bybit">Bybit</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="newOrderSide">Side</label>
+          <select id="newOrderSide" name="newOrderSide">
+            <option value="">Select Side</option>
+            <option value="long">Long</option>
+            <option value="short">Short</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="newOrderType">Type</label>
+          <select id="newOrderType" name="newOrderType">
+            <option value="">Select Type</option>
+            <option value="market">Market</option>
+            <option value="limit">Limit</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="newOrderOpenType">Open Type</label>
+          <select id="newOrderOpenType" name="newOrderOpenType">
+            <option value="">Select Open Type</option>
+            <option value="isolated">Isolated</option>
+            <option value="cross">Cross</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="newOrderLeverage">Leverage</label>
+          <input
+            type="number"
+            id="newOrderLeverage"
+            name="newOrderLeverage"
+            min="1"
+            max="100"
+            value="1"
+          />
+        </div>
+        <div class="form-group">
+          <label for="newOrderPrice">Price</label>
+          <input
+            type="number"
+            id="newOrderPrice"
+            name="newOrderPrice"
+            step="0.0001"
+          />
+        </div>
+        <div class="form-group">
+          <label for="newOrderAmount">Amount</label>
+          <input
+            type="number"
+            id="newOrderAmount"
+            name="newOrderAmount"
+            step="0.0001"
+          />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="newOrderStopLoss">Stop Loss</label>
+          <input
+            type="number"
+            id="newOrderStopLoss"
+            name="newOrderStopLoss"
+            step="0.0001"
+          />
+        </div>
+        <div class="form-group">
+          <label for="newOrderTakeProfit">Take Profit</label>
+          <input
+            type="number"
+            id="newOrderTakeProfit"
+            name="newOrderTakeProfit"
+            step="0.0001"
+          />
+        </div>
+        <div class="form-group">
+          <label for="newOrderFee">Fee</label>
+          <input
+            type="number"
+            id="newOrderFee"
+            name="newOrderFee"
+            step="0.0001"
+            value="0.001"
+          />
+        </div>
+        <div class="form-group">
+          <label for="newOrderAmountUsdt">Amount USDT</label>
+          <input
+            type="number"
+            id="newOrderAmountUsdt"
+            name="newOrderAmountUsdt"
+            step="0.0001"
+          />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary" id="saveNewOrderBtn">
+          Save
+        </button>
+        <button type="button" class="btn btn-secondary" id="deleteNewOrderBtn">
+          Delete
+        </button>
+      </div>
+    </div>
+
     <!-- Filters Section -->
     <div class="orders-filters">
       <div class="filter-group">
@@ -187,6 +317,40 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="confirmation-modal" id="confirmationModal">
+  <div class="confirmation-modal-content">
+    <div class="confirmation-modal-header">
+      <h3 class="confirmation-modal-title" id="confirmationTitle">
+        Confirm Operation
+      </h3>
+      <button class="confirmation-modal-close" id="confirmationModalClose">
+        &times;
+      </button>
+    </div>
+    <div class="confirmation-modal-body">
+      <p id="confirmationMessage">
+        Are you sure you want to perform this operation?
+      </p>
+      <div class="order-details" id="orderDetails">
+        <!-- Order details will be displayed here -->
+      </div>
+    </div>
+    <div class="confirmation-modal-footer">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        id="confirmationCancelBtn"
+      >
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" id="confirmationConfirmBtn">
+        Confirm
+      </button>
     </div>
   </div>
 </div>

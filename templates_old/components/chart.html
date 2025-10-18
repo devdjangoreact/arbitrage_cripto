@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>TradingView</title>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      iframe {
+        border: none;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe
+      id="tradingview-chart-{{symbol|default(currentSymbolContext or 'BTCUSDT')}}"
+      src="https://www.tradingview.com/widgetembed/?frameElementId=tradingview_chart_{{symbol|default(currentSymbolContext or 'BTCUSDT')}}&symbol=BINANCE%3A{{symbol|default(currentSymbolContext or 'BTCUSDT')}}&interval=1m&theme=dark&style=1&locale=en&toolbar_bg=f2f3f7&enable_publishing=false&withdateranges=false&hide_side_toolbar=false&allow_symbol_change=false&details=false&hotlist=false&calendar=false&studies=%5B%5D&theme=dark&style=1&timezone=Etc%2FUTC&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&referrer=https%3A%2F%2Fwww.tradingview.com%2F"
+    >
+    </iframe>
+  </body>
+</html>

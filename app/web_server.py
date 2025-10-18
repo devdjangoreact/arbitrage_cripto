@@ -37,6 +37,9 @@ class WebServer:
 
         # Mount static files from templates directory
         self.app.mount("/templates", StaticFiles(directory="templates"), name="templates")
+
+        # Mount static files from utils directory to serve JSON files
+        self.app.mount("/utils", StaticFiles(directory="utils"), name="utils")
         self.last_prices_collection = last_prices_collection
         self.save_to_file = save_to_file
         self.tokens_analyzer = tokens_analyzer

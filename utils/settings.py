@@ -9,7 +9,12 @@ from dotenv import load_dotenv
 class Settings:
     """Configuration management class for loading and accessing config.json parameters."""
 
-    def __init__(self, config_path: str = "utils/config.json"):
+    def __init__(
+        self,
+        config_path: str = "utils/config.json",
+        exchanges_path: str = "utils/exchange.json",
+        symbols_path: str = "utils/symbols.json",
+    ):
         """
         Initialize settings with configuration file.
 
@@ -17,9 +22,23 @@ class Settings:
             config_path: Path to the configuration JSON file
         """
         self.config_path = config_path
+        self.exchanges_path = exchanges_path
+        self.symbols_path = symbols_path
         self._config: Optional[Dict[str, Any]] = None
         self._initialize_environment()
         self._load_config()
+        self._load_exchanges()
+        self._load_symbols()
+
+    def _load_exchanges(self) -> None:
+        """Load exchanges from exchange.json."""
+        with open(self.exchanges_path, encoding="utf-8") as f:
+            self._exchanges = json.load(f)
+
+    def _load_symbols(self) -> None:
+        """Load symbols from symbols.json."""
+        with open(self.symbols_path, encoding="utf-8") as f:
+            self._symbols = json.load(f)
 
     def _initialize_environment(self) -> None:
         """Initialize environment variables from .env file."""
@@ -238,6 +257,30 @@ class Settings:
         """Get exchanges output file path."""
         result = self.get("exchanges_ws.output_file", "data/last_prices_ws.json")
         return str(result)
+
+    @property
+    def web_server(self) -> bool:
+        """Get web server setting."""
+        result = self.get("web_server", False)
+        return bool(result) if isinstance(result, (bool, int, str)) else False
+
+    @property
+    def web_server_host(self) -> str:
+        """Get web server host."""
+        result = self.get("web_server_host", "0.0.0.0")
+        return str(result)
+
+    @property
+    def web_server_port(self) -> int:
+        """Get web server port."""
+        result = self.get("web_server_port", 8000)
+        return int(result) if isinstance(result, (int, float, str)) else 8000
+
+    @property
+    def desktop(self) -> bool:
+        """Get desktop setting."""
+        result = self.get("desktop", False)
+        return bool(result) if isinstance(result, (bool, int, str)) else False
 
     @property
     def mexc_id(self) -> str:

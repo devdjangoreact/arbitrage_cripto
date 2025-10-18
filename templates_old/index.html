@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Token Analyzer</title>
+    <link rel="stylesheet" href="/templates/static/styles.css" />
+  </head>
+  <body>
+    <div class="main-container">
+      <!-- Header -->
+      <div class="header-container">{% include 'header.html' %}</div>
+
+      <!-- Content Container -->
+      <div class="content-container">
+        <!-- Sidebar Navigation -->
+        {% include 'sidebar.html' %}
+
+        <!-- Right Side Panel -->
+        {% include 'right-side.html' %}
+
+        <!-- Main Content -->
+        {% include 'main.html' %}
+      </div>
+    </div>
+
+    <!-- Symbols Modal -->
+    {% include 'content/modal.html' %}
+
+    <!-- Load all JavaScript modules -->
+    <script src="/templates/static/core.js"></script>
+    <script src="/templates/static/ui.js"></script>
+    <script src="/templates/static/orders.js"></script>
+    <script src="/templates/static/symbols.js"></script>
+    <script src="/templates/static/modals.js"></script>
+    <script src="/templates/static/charts.js"></script>
+    <script src="/templates/static/analyzer.js"></script>
+    <script src="/templates/static/script.js"></script>
+  </body>
+</html>
