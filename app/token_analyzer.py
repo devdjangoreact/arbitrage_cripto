@@ -3,12 +3,9 @@ import json
 import statistics
 import time
 import traceback
-from collections import defaultdict, deque
+from collections import deque
 from datetime import datetime
-from typing import Any, Deque, Dict, List, Optional
-
-from utils.logger import get_logger
-from utils.settings import get_settings
+from typing import Any, Dict, List, Optional
 
 
 class TokensAnalyzer:
@@ -20,61 +17,24 @@ class TokensAnalyzer:
     def __init__(
         self,
         last_prices_collection: Optional[List[Dict[str, Any]]] = None,
-        output_path: str = "data/tokens_analyzer.json",
-        test_mode: bool = False,
-        periods: Optional[Dict[str, str]] = None,
-        thresholds: Optional[Dict[str, float]] = None,
-        save_to_file: bool = True,
-        symbols: Optional[List[str]] = None,
+        settings=None,
+        logger=None,
     ):
-        self.last_prices_collection = last_prices_collection
-        self.output_path = output_path
-        self.logger = get_logger()
-        self._test_mode = test_mode
-        self.save_to_file = save_to_file
-        self.symbols = symbols or get_settings().symbols
-
-        # Buffers for storing historical data
-        self.price_history: Dict[str, Dict[str, Deque[Dict]]] = defaultdict(
-            lambda: defaultdict(deque)
-        )  # {exchange: {symbol: deque}}
-        self.volume_history: Dict[str, Dict[str, Deque[Dict]]] = defaultdict(lambda: defaultdict(deque))
-        self.trade_history: Dict[str, Dict[str, Deque[Dict]]] = defaultdict(lambda: defaultdict(deque))
-        self._last_processed_length: int = 0
-
-        self.periods = periods or {
-            "delta": "1h",
-            "vol": "1h",
-            "trade": "1h",
-            "NATR": "1h",
-            "spread": "1h",
-            "activity": "1h",
-        }
-        # Period settings (in seconds)
-        self.periods_seconds = {
-            "1m": 60,
-            "5m": 300,
-            "15m": 900,
-            "1h": 3600,
-            "4h": 14400,
-            "1d": 86400,
-        }
-
-        # Filtering thresholds (lowered for testing)
-        self.thresholds = thresholds or {
-            "delta": 0,  # 0.01% minimum price difference
-            "vol": 0,  # minimum trading volume
-            "trade": 0,  # minimum number of trades
-            "NATR": 0,  # minimum volatility
-            "spread": 0,  # minimum spread
-            "activity": 0,  # minimum activity
-        }
+        self.last_prices_collection = last_prices_collection or []
+        self.settings = settings
+        self.logger = logger
+        self.output_path = self.settings.tokens_output_path
+        self.test_mode = self.settings.tokens_test_mode
+        self.save_to_file = self.settings.tokens_save_to_file or False
+        self.symbols = self.settings.symbols
+        self.periods = self.settings.tokens_periods_seconds
+        self.thresholds = self.settings.tokens_thresholds
         self._data_processed = False
 
     def _get_period_timestamp(self, period: str) -> int:
         """Get timestamp for given period."""
         # For testing with file data, use time from data
-        if hasattr(self, "_test_mode") and self._test_mode:
+        if hasattr(self, "test_mode") and self.test_mode:
             # Find the latest timestamp from data
             if self.last_prices_collection:
                 latest_timestamp = max(
@@ -82,11 +42,11 @@ class TokensAnalyzer:
                     for entry in self.last_prices_collection
                     if isinstance(entry, dict) and "timestamp" in entry
                 )
-                period_seconds = self.periods_seconds.get(period, 3600)
+                period_seconds = self.periods.get(period, 3600)
                 return latest_timestamp - (period_seconds * 1000)
 
         now = int(time.time() * 1000)
-        period_seconds = self.periods_seconds.get(period, 3600)  # default 1 hour
+        period_seconds = self.periods.get(period, 3600)  # default 1 hour
         return now - (period_seconds * 1000)
 
     def _filter_by_period(self, data: deque, period: str) -> List:

@@ -283,6 +283,12 @@ class Settings:
         return bool(result) if isinstance(result, (bool, int, str)) else False
 
     @property
+    def save_to_file(self) -> bool:
+        """Get save to file setting."""
+        result = self.get("save_to_file", True)
+        return bool(result) if isinstance(result, (bool, int, str)) else True
+
+    @property
     def mexc_id(self) -> str:
         """Get MEXC ID from environment."""
         result = os.getenv("MEXC_API_KEY", "")

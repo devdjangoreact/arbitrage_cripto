@@ -20,31 +20,21 @@ async def main():
     # Initialize logger
     logger = get_logger()
 
-    save_to_file = False
-
     # Initialize WebSocket exchanges
-    ws_exchanges = ExchangesWS(logger=logger, save_to_file=save_to_file)
+    ws_exchanges = ExchangesWS(logger=logger, settings=settings)
 
     # Initialize arbitrage analyzer with settings parameters
     analyzer = AnalyzeArbitrage(
-        input_file=settings.arbitrage_input_file,
-        output_file=settings.arbitrage_output_file,
-        symbols=symbols,
-        interval=settings.arbitrage_interval,
         last_prices_collection=ws_exchanges.last_prices,
-        volume_trade=settings.arbitrage_volume_trade,
-        save_to_file=save_to_file,
+        settings=settings,
+        logger=logger,
     )
 
     # Initialize tokens analyzer with settings parameters
     tokens_analyzer = TokensAnalyzer(
         last_prices_collection=ws_exchanges.last_prices,
-        output_path=settings.tokens_output_path,
-        test_mode=settings.tokens_test_mode,
-        periods=settings.tokens_periods,
-        thresholds=settings.tokens_thresholds,
-        save_to_file=save_to_file,
-        symbols=symbols,
+        settings=settings,
+        logger=logger,
     )
 
     try:
@@ -68,10 +58,10 @@ async def main():
             logger.info(f"Web server enabled on {web_host}:{web_port}")
             tasks.append(web_server.start())
 
-        # if settings.desktop:
-        #     desktop_app = DesktopApp()
-        #     tasks.append(desktop_app.run())
-        #     logger.info("Desktop app enabled")
+        if settings.desktop:
+            desktop_app = DesktopApp()
+            tasks.append(desktop_app.run())
+            logger.info("Desktop app enabled")
 
         # Start all tasks in parallel
         await asyncio.gather(*tasks)

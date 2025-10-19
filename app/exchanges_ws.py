@@ -11,16 +11,16 @@ from utils.settings import get_settings
 
 class ExchangesWS:
 
-    def __init__(self, logger=None, last_prices_file=None, save_to_file=True):
+    def __init__(self, logger=None, settings=None):
         # Load settings
-        self.settings = get_settings()
+        self.settings = settings
 
         # Set logger first
         self.logger = logger
 
         # Use settings for configuration
-        self.last_prices_file = last_prices_file or self.settings.arbitrage_input_file
-        self.save_to_file = save_to_file
+        self.last_prices_file = self.settings.exchanges_output_file
+        self.save_to_file = self.settings.save_to_file or False
 
         # Prepare (lazy) exchanges container and factory map
         self.exchanges: dict[str, ccxtpro.Exchange] = {}
@@ -1053,118 +1053,11 @@ class ExchangesWS:
         }
 
 
-# Removed test functions - keeping only core ExchangesWS class
-
-
-async def test_specific_exchange_operations(exchange_name: str, symbol: str = None):
-    """
-    Test specific operations for a single exchange.
-
-    Args:
-        exchange_name: Name of the exchange to test
-        symbol: Trading symbol to use for testing (if None, uses first symbol from settings)
-    """
-    if symbol is None:
-        settings = get_settings()
-        symbols = settings.symbols
-        symbol = symbols[0] if symbols else "BTC/USDT:USDT"
-    from utils.logger import get_logger
-
-    logger = get_logger()
-    exchanges_ws = ExchangesWS(logger=logger)
-
-    ex = exchanges_ws._get_or_create_exchange(exchange_name)
-    if not ex:
-        print(f"❌ Exchange {exchange_name} not available")
-        return
-
-    print(f"🔍 Testing {exchange_name.upper()} Exchange Operations")
-    print("=" * 50)
-
-    try:
-        # Test order creation with different parameters
-        test_cases = [
-            {
-                "name": "Market Buy Order",
-                "side": "buy",
-                "amount": 5,
-                "order_type": "market",
-            },
-            {
-                "name": "Limit Sell Order",
-                "side": "sell",
-                "amount": 5,
-                "price": 45000,
-                "order_type": "limit",
-            },
-            {
-                "name": "Market Sell Order",
-                "side": "sell",
-                "amount": 3,
-                "order_type": "market",
-            },
-        ]
-
-        created_orders = []
-
-        for i, test_case in enumerate(test_cases, 1):
-            print(f"\n{i}. {test_case['name']}")
-            print("-" * 30)
-
-            result = await exchanges_ws.create_closing_changing_order(
-                symbol=symbol,
-                side=test_case["side"],
-                amount=test_case["amount"],
-                price=test_case.get("price"),
-                order_type=test_case["order_type"],
-                exchange_name=exchange_name,
-            )
-
-            if result.get(exchange_name, {}).get("success"):
-                order_id = result[exchange_name]["order_id"]
-                created_orders.append(order_id)
-                print(f"   ✅ Order created: {order_id}")
-            else:
-                print(f"   ❌ Order failed: {result[exchange_name].get('error')}")
-
-        # Cancel all created orders
-        print(f"\n🗑️  Cancelling {len(created_orders)} orders...")
-        for order_id in created_orders:
-            try:
-                cancel_result = await exchanges_ws.cancel_order(
-                    order_id=order_id, symbol=symbol, exchange_name=exchange_name
-                )
-                if cancel_result.get(exchange_name, {}).get("success"):
-                    print(f"   ✅ Order {order_id} cancelled")
-                else:
-                    print(f"   ❌ Failed to cancel {order_id}")
-            except Exception as e:
-                print(f"   ❌ Error cancelling {order_id}: {str(e)}")
-
-    except Exception as e:
-        print(f"❌ Error during testing: {str(e)}")
-        logger.error(f"Error during testing: {str(e)}")
-
-    finally:
-        # Cleanup
-        try:
-            await exchanges_ws.exchanges[exchange_name].close()
-        except Exception as e:
-            print(f"Warning: Error closing exchange: {str(e)}")
-
-
-async def test_exchanges_order_operations():
+async def test_exchanges_order_operations(exchanges_ws: ExchangesWS):
     """
     Test function for creating, changing, and closing market and limit orders
     on Gate.io and Bitget exchanges using ExchangesWS class.
     """
-    from utils.logger import get_logger
-
-    # Initialize logger
-    logger = get_logger()
-
-    # Initialize ExchangesWS
-    exchanges_ws = ExchangesWS(logger=logger)
 
     # Use first symbol from settings
     symbols = exchanges_ws.settings.symbols
@@ -1509,4 +1402,12 @@ async def test_exchanges_order_operations():
 if __name__ == "__main__":
     # Run the test
     print("Starting Exchange Order Operations Test...")
-    asyncio.run(test_exchanges_order_operations())
+    from utils.logger import get_logger
+
+    # Initialize logger
+    logger = get_logger()
+    settings = get_settings()
+    # Initialize ExchangesWS
+    exchanges_ws = ExchangesWS(logger=logger, settings=settings)
+
+    asyncio.run(test_exchanges_order_operations(exchanges_ws))

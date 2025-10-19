@@ -4,30 +4,20 @@ import time
 from datetime import datetime
 from typing import Any, Dict
 
-from utils.logger import get_logger
-from utils.settings import get_settings
-
 
 class AnalyzeArbitrage:
 
-    def __init__(
-        self,
-        input_file="data/last_prices_ws.json",
-        output_file="data/arbitrage_analysis.json",
-        symbols=None,
-        interval=1,
-        last_prices_collection=None,
-        volume_trade=100,
-        save_to_file=True,
-    ):
-        self.input_file = input_file
-        self.output_file = output_file
-        self.symbols = symbols or get_settings().symbols
-        self.interval = interval
-        self.last_prices_collection = last_prices_collection
-        self.volume_trade = volume_trade
-        self.save_to_file = save_to_file
-        self.logger = get_logger()
+    def __init__(self, last_prices_collection=None, settings=None, logger=None):
+        self.last_prices_collection = last_prices_collection or []
+        self.settings = settings
+        self.logger = logger
+        self.input_file = self.settings.arbitrage_input_file
+        self.output_file = self.settings.arbitrage_output_file
+        self.symbols = self.settings.symbols
+        self.interval = self.settings.arbitrage_interval
+
+        self.volume_trade = self.settings.arbitrage_volume_trade
+        self.save_to_file = self.settings.arbitrage_save_to_file or False
 
     def _get_last_prices_per_exchange(self, entries, target_ts):
         last: Dict[str, Any] = {}
