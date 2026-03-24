@@ -26,7 +26,9 @@ async def main():
 
     exchanges_symbols = await utils.exchanges_symbols(ws_exchanges, filter=True, logger=logger)
 
-    exchanges_symbols_trades = await ws_exchanges.get_all_symbols_volume_trades(exchanges_symbols)
+    # Get max_symbols from settings for faster fetching
+    max_symbols = settings.max_symbols_for_trades
+    exchanges_symbols_trades = await ws_exchanges.get_all_symbols_volume_trades(exchanges_symbols, max_symbols=max_symbols)
 
     exchanges_symbols_for_trades = utils.exchanges_symbols_trades(
         exchanges_symbols_trades, settings, filter=True, logger=logger

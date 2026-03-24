@@ -73,6 +73,10 @@ def exchanges_symbols_trades(
     """Exchanges symbols trades by settings."""
     with open(settings._exchanges_symbols_trades_path, encoding="utf-8") as f:
         current_data = json.load(f)
+    
+    # Ensure current_data is a dict, not a list (handle old data format)
+    if isinstance(current_data, list):
+        current_data = {}
 
     if filter:
         for symbol_item in new_data:

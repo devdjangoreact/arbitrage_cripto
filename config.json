@@ -1,8 +1,8 @@
 {
   "desktop": false,
-  "web_server": false,
+  "web_server": true,
   "web_server_address": "0.0.0.0:8000",
-  "save_to_file": false,
+  "save_to_file": true,
   "arbitrage_analyzer": {
     "input_file": "data/last_prices_ws.json",
     "output_file": "data/arbitrage_analysis.json",
@@ -12,6 +12,7 @@
   "tokens_analyzer": {
     "output_path": "data/tokens_analyzer.json",
     "test_mode": false,
+    "save_to_file": true,
     "periods": {
       "delta": "1h",
       "vol": "4h",
@@ -47,11 +48,11 @@
       },
       {
         "exchange": "bitget",
-        "use": false
+        "use": true
       },
       {
         "exchange": "bingx",
-        "use": true
+        "use": false
       },
       {
         "exchange": "mexc",
@@ -84,7 +85,17 @@
     ],
     "reconnect_interval": 5,
     "max_reconnect_attempts": 10,
-    "output_file": "data/last_prices_ws.json"
+    "output_file": "data/last_prices_ws.json",
+    "ohlcv_timeframes": {
+      "5m": 6,
+      "15m": 4,
+      "1h": 2,
+      "4h": 1,
+      "1d": 1
+    },
+    "ohlcv_timeframe_1m": false,
+    "ohlcv_timeframe_5m": false,
+    "max_symbols_for_trades": 10
   },
   "logging": {
     "level": "INFO",

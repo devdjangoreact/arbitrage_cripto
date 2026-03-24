@@ -187,35 +187,54 @@ class WebServer:
     async def _load_tokens_data(self):
         """Load tokens analyzer data from analyzer or file."""
         try:
-            # First try to get data from tokens analyzer if available
+            data_path = self.settings.tokens_output_path
+            file_data = {}
+            analyzer_data = {}
+            
+            # Try to get real-time data from tokens analyzer if available
             if self.tokens_analyzer:
                 try:
-                    result = self.tokens_analyzer.filter_and_save()
-                    if result and len(result) > 0:
-                        self.logger.info(f"Loaded real-time tokens data from analyzer with {len(result)} exchanges")
-                        return result
-                    else:
-                        self.logger.warning("Tokens analyzer returned empty data")
+                    analyzer_data = self.tokens_analyzer.filter_and_save()
+                    if analyzer_data and len(analyzer_data) > 0:
+                        self.logger.debug(f"Loaded real-time data from analyzer: {len(analyzer_data)} exchanges")
                 except Exception as e:
-                    self.logger.warning(f"Error getting data from tokens analyzer: {e}")
-
-            # Fallback to JSON file if available
-            data_path = "data/tokens_analyzer.json"
+                    self.logger.debug(f"Analyzer data not available: {e}")
+            
+            # Also read from file for persistence
             if os.path.exists(data_path):
-                with open(data_path, encoding="utf-8") as f:
-                    data = json.load(f)
-                    if data and len(data) > 0:
-                        self.logger.info(f"Loaded tokens data from file with {len(data)} exchanges")
-                        return data
-                    else:
-                        self.logger.warning("Tokens data file is empty")
-
-            self.logger.warning("No tokens data available")
-            return {}
+                try:
+                    with open(data_path, encoding="utf-8") as f:
+                        file_data = json.load(f)
+                    if file_data and len(file_data) > 0:
+                        self.logger.debug(f"Loaded data from file: {len(file_data)} exchanges")
+                except Exception as e:
+                    self.logger.debug(f"File data not available: {e}")
+            
+            # Merge data: prefer analyzer data (real-time), fallback to file data
+            merged_data = {}
+            
+            # Add all exchanges from analyzer (real-time, higher priority)
+            for exchange, tokens in analyzer_data.items():
+                if not exchange.startswith('_'):
+                    merged_data[exchange] = tokens
+            
+            # Add exchanges from file that aren't in analyzer
+            for exchange, tokens in file_data.items():
+                if not exchange.startswith('_') and exchange not in merged_data:
+                    merged_data[exchange] = tokens
+            
+            # Add timestamp for cache busting
+            result = {
+                **merged_data,
+                "_timestamp": datetime.now().isoformat(),
+                "_source": "analyzer" if analyzer_data else "file"
+            }
+            
+            return result
 
         except Exception as e:
             self.logger.error(f"Error loading tokens data: {e}")
-            return {}
+            return {"_timestamp": datetime.now().isoformat(), "_error": str(e)}
 
     async def _render_main_page(self, request: Request) -> HTMLResponse:
         """Render the main page with status information."""

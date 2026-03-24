@@ -1173,31 +1173,91 @@ class ExchangesWS:
 
         return result
 
-    async def get_all_symbols_volume_trades(self, exchanges_symbols: dict):
-        """Get all symbols volume trades from all exchanges."""
+    async def get_all_symbols_volume_trades(self, exchanges_symbols: dict, max_symbols: int = None):
+        """Get all symbols volume trades from all exchanges.
+        
+        Args:
+            exchanges_symbols: Dict of exchange -> symbols list
+            max_symbols: Maximum symbols to fetch per exchange (for sampling)
+        """
         symbols_data_trades = []
-        timeframes = {"5m": 6, "15m": 4, "1h": 2, "4h": 1, "1d": 1}
+        
+        # Configurable timeframes from settings
+        timeframes = self.settings.ohlcv_timeframes.copy()
+        
+        # Check if 1m timeframe should be enabled
+        if self.settings.ohlcv_timeframe_1m:
+            timeframes["1m"] = 10  # 10 candles for 1m
+        
+        # Create semaphore to limit concurrent requests (avoid rate limits)
+        semaphore = asyncio.Semaphore(20)  # Max 20 concurrent requests
+        
+        async def fetch_with_semaphore(exchange, symbol, tf, limit):
+            async with semaphore:
+                try:
+                    return await exchange.fetch_ohlcv(symbol, tf, limit=limit)
+                except Exception as e:
+                    self.logger.debug(f"Error fetching {symbol} {tf}: {e}")
+                    return []
+        
+        # Process each exchange
         for exchange_name, symbols_data in exchanges_symbols.items():
             if exchange_name not in self._allowed_exchange_names:
                 continue
+            
             exchange = self._get_or_create_exchange(exchange_name)
-
-            # data = await self.get_ohlcv_with_different_limits(exchange, symbols_data, timeframes)
-            # if not data:
+            
+            # Sample symbols if max_symbols is set
+            if max_symbols:
+                symbols_data = symbols_data[:max_symbols]
+            
+            self.logger.info(f"Fetching OHLCV for {len(symbols_data)} symbols on {exchange_name} with {len(timeframes)} timeframes")
+            
+            # Create all fetch tasks for this exchange
+            fetch_tasks = []
+            symbol_tasks = {}  # Track which tasks belong to which symbol
+            
             for symbol in symbols_data:
+                # Check if symbol already exists in results
                 data = [item for item in symbols_data_trades if item["symbol"] == symbol]
                 if data:
                     items = data[0]
                 else:
                     items = {"symbol": symbol, "trades": []}
                     symbols_data_trades.append(items)
-                trades_exchange = {}
+                
+                # Create tasks for all timeframes
                 for tf, limit in timeframes.items():
-                    data_fetch = await exchange.fetch_ohlcv(symbol, tf, limit=limit)
-                    trades_exchange[tf] = data_fetch
-
-                items["trades"].append({exchange_name: trades_exchange})
-            self.logger.info(f"Symbols data trades by {exchange_name} loaded")
+                    task = fetch_with_semaphore(exchange, symbol, tf, limit)
+                    fetch_tasks.append(task)
+                    symbol_tasks[len(fetch_tasks) - 1] = (symbol, tf, exchange_name)
+            
+            # Execute all tasks concurrently
+            if fetch_tasks:
+                results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
+                
+                # Process results
+                for idx, result in enumerate(results):
+                    if idx in symbol_tasks:
+                        symbol, tf, ex_name = symbol_tasks[idx]
+                        # Find the symbol item and add result
+                        symbol_item = next((item for item in symbols_data_trades if item["symbol"] == symbol), None)
+                        if symbol_item:
+                            # Find or create exchange data
+                            exchange_trades = None
+                            for trade_dict in symbol_item["trades"]:
+                                if ex_name in trade_dict:
+                                    exchange_trades = trade_dict[ex_name]
+                                    break
+                            
+                            if exchange_trades is None:
+                                exchange_trades = {}
+                                symbol_item["trades"].append({ex_name: exchange_trades})
+                            
+                            exchange_trades[tf] = result if not isinstance(result, Exception) else []
+            
+            self.logger.info(f"Symbols data trades by {exchange_name} loaded ({len(symbols_data)} symbols)")
+        
         return symbols_data_trades
 
 

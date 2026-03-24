@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crypto Arbitrage Analyzer</title>
+    <link rel="stylesheet" href="/templates/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🚀 Crypto Arbitrage Analyzer</h1>
+        <div class="status-bar">
+          <span id="status"
+            >Status: <span class="status-indicator">●</span>
+            <span id="status-text">Loading...</span></span
+          >
+          <span id="timestamp">Last update: --</span>
+        </div>
+      </header>
+
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="spread">
+          Spread Analysis
+        </button>
+        <button class="tab-btn" data-tab="tokens">Tokens</button>
+        <button class="tab-btn" data-tab="filters">Filters</button>
+      </nav>
+
+      <!-- Spread Analysis Tab -->
+      <div id="spread-tab" class="tab-content active">
+        <div class="controls">
+          <button id="refresh-spread-btn" class="btn btn-primary">
+            🔄 Refresh
+          </button>
+          <select id="exchange-pair-filter" class="select">
+            <option value="all">All Exchange Pairs</option>
+          </select>
+          <select id="min-spread-filter" class="select">
+            <option value="0">Min Spread: All</option>
+            <option value="0.001">Min Spread: 0.1%</option>
+            <option value="0.005">Min Spread: 0.5%</option>
+            <option value="0.01">Min Spread: 1%</option>
+            <option value="0.02">Min Spread: 2%</option>
+            <option value="0.05">Min Spread: 5%</option>
+          </select>
+          <input
+            type="text"
+            id="token-search"
+            class="input"
+            placeholder="Search token..."
+            style="width: 200px"
+          />
+        </div>
+
+        <div class="table-controls">
+          <div class="sort-controls">
+            <span>Sort by:</span>
+            <button
+              class="sort-btn active"
+              data-sort="spread"
+              data-order="desc"
+            >
+              Spread ▼
+            </button>
+            <button class="sort-btn" data-sort="volume" data-order="desc">
+              Volume ▼
+            </button>
+            <button class="sort-btn" data-sort="token" data-order="asc">
+              Token ▲
+            </button>
+          </div>
+        </div>
+
+        <div id="spread-data" class="data-container">
+          <div class="loading">Loading spread data...</div>
+        </div>
+      </div>
+
+      <!-- Tokens Tab -->
+      <div id="tokens-tab" class="tab-content">
+        <div class="controls">
+          <button id="refresh-btn" class="btn btn-primary">
+            🔄 Refresh Data
+          </button>
+          <select id="exchange-filter" class="select">
+            <option value="all">All Exchanges</option>
+          </select>
+        </div>
+        <div id="tokens-data" class="data-container">
+          <div class="loading">Loading tokens data...</div>
+        </div>
+      </div>
+
+      <!-- Filters Tab -->
+      <div id="filters-tab" class="tab-content">
+        <div class="filters-container">
+          <div class="filter-section">
+            <h3>Periods</h3>
+            <div class="filter-grid">
+              <div class="filter-item">
+                <label for="period-delta">Delta</label>
+                <input type="text" id="period-delta" value="1h" class="input" />
+              </div>
+              <div class="filter-item">
+                <label for="period-vol">Volume</label>
+                <input type="text" id="period-vol" value="4h" class="input" />
+              </div>
+              <div class="filter-item">
+                <label for="period-trade">Trade</label>
+                <input type="text" id="period-trade" value="1h" class="input" />
+              </div>
+              <div class="filter-item">
+                <label for="period-natr">NATR</label>
+                <input type="text" id="period-natr" value="1d" class="input" />
+              </div>
+              <div class="filter-item">
+                <label for="period-spread">Spread</label>
+                <input
+                  type="text"
+                  id="period-spread"
+                  value="15m"
+                  class="input"
+                />
+              </div>
+              <div class="filter-item">
+                <label for="period-activity">Activity</label>
+                <input
+                  type="text"
+                  id="period-activity"
+                  value="1h"
+                  class="input"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="filter-section">
+            <h3>Thresholds</h3>
+            <div class="filter-grid">
+              <div class="filter-item">
+                <label for="threshold-delta">Delta</label>
+                <input
+                  type="number"
+                  id="threshold-delta"
+                  value="0"
+                  step="0.0001"
+                  class="input"
+                />
+              </div>
+              <div class="filter-item">
+                <label for="threshold-vol">Volume</label>
+                <input
+                  type="number"
+                  id="threshold-vol"
+                  value="0"
+                  step="1"
+                  class="input"
+                />
+              </div>
+              <div class="filter-item">
+                <label for="threshold-trade">Trade Count</label>
+                <input
+                  type="number"
+                  id="threshold-trade"
+                  value="0"
+                  step="1"
+                  class="input"
+                />
+              </div>
+              <div class="filter-item">
+                <label for="threshold-natr">NATR</label>
+                <input
+                  type="number"
+                  id="threshold-natr"
+                  value="0"
+                  step="0.0001"
+                  class="input"
+                />
+              </div>
+              <div class="filter-item">
+                <label for="threshold-spread">Spread</label>
+                <input
+                  type="number"
+                  id="threshold-spread"
+                  value="0"
+                  step="0.0001"
+                  class="input"
+                />
+              </div>
+              <div class="filter-item">
+                <label for="threshold-activity">Activity</label>
+                <input
+                  type="number"
+                  id="threshold-activity"
+                  value="0"
+                  step="0.1"
+                  class="input"
+                />
+              </div>
+            </div>
+          </div>
+          <button id="apply-filters-btn" class="btn btn-success">
+            💾 Apply Filters
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/templates/script.js"></script>
+  </body>
+</html>

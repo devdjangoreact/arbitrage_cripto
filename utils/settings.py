@@ -188,6 +188,28 @@ class Settings:
         )
 
     @property
+    def tokens_periods_seconds(self) -> Dict[str, int]:
+        """Get tokens analyzer periods in seconds."""
+        periods = self.tokens_periods
+        result = {}
+        for key, period in periods.items():
+            if isinstance(period, int):
+                result[key] = period
+            elif isinstance(period, str):
+                # Parse period string (e.g., "1h", "30m", "1d")
+                if period.endswith("h"):
+                    result[key] = int(period[:-1]) * 3600
+                elif period.endswith("m"):
+                    result[key] = int(period[:-1]) * 60
+                elif period.endswith("d"):
+                    result[key] = int(period[:-1]) * 86400
+                else:
+                    result[key] = 3600  # default 1 hour
+            else:
+                result[key] = 3600
+        return result
+
+    @property
     def tokens_thresholds(self) -> Dict[str, float]:
         """Get tokens analyzer thresholds configuration."""
         default_thresholds: Dict[str, float] = {
@@ -226,9 +248,52 @@ class Settings:
         return self.get("exchanges_ws.output_file", "data/last_prices_ws.json")
 
     @property
+    def ohlcv_timeframes(self) -> dict:
+        """Get OHLCV timeframes configuration."""
+        return self.get(
+            "exchanges_ws.ohlcv_timeframes",
+            {
+                "5m": 6,
+                "15m": 4,
+                "1h": 2,
+                "4h": 1,
+                "1d": 1
+            }
+        )
+
+    @property
+    def ohlcv_timeframe_1m(self) -> bool:
+        """Get 1m timeframe enabled setting."""
+        return self.get("exchanges_ws.ohlcv_timeframe_1m", False)
+
+    @property
+    def ohlcv_timeframe_5m(self) -> bool:
+        """Get 5m timeframe enabled setting."""
+        return self.get("exchanges_ws.ohlcv_timeframe_5m", True)
+
+    @property
+    def max_symbols_for_trades(self) -> int:
+        """Get maximum symbols to fetch for trades (None for all)."""
+        return self.get("exchanges_ws.max_symbols_for_trades", None)
+
+    @property
     def web_server(self) -> bool:
         """Get web server setting."""
         return self.get("web_server", False)
+
+    @property
+    def web_server_host(self) -> str:
+        """Get web server host."""
+        # Parse from web_server_address (e.g., "0.0.0.0:8000" -> "0.0.0.0")
+        address = self.get("web_server_address", "0.0.0.0:8000")
+        return str(address).split(":")[0]
+
+    @property
+    def web_server_port(self) -> int:
+        """Get web server port."""
+        # Parse from web_server_address (e.g., "0.0.0.0:8000" -> 8000)
+        address = self.get("web_server_address", "0.0.0.0:8000")
+        return int(str(address).split(":")[1])
 
     @property
     def web_server_address(self) -> str:
