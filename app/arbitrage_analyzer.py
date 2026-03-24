@@ -17,7 +17,7 @@ class AnalyzeArbitrage:
         self.interval = self.settings.arbitrage_interval
 
         self.volume_trade = self.settings.arbitrage_volume_trade
-        self.save_to_file = self.settings.arbitrage_save_to_file or False
+        self.save_to_file = self.settings.save_to_file or False
 
     def _get_last_prices_per_exchange(self, entries, target_ts):
         last: Dict[str, Any] = {}

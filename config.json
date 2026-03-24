@@ -1,0 +1,98 @@
+{
+  "desktop": false,
+  "web_server": false,
+  "web_server_address": "0.0.0.0:8000",
+  "save_to_file": false,
+  "arbitrage_analyzer": {
+    "input_file": "data/last_prices_ws.json",
+    "output_file": "data/arbitrage_analysis.json",
+    "interval": 1,
+    "volume_trade": 100
+  },
+  "tokens_analyzer": {
+    "output_path": "data/tokens_analyzer.json",
+    "test_mode": false,
+    "periods": {
+      "delta": "1h",
+      "vol": "4h",
+      "trade": "1h",
+      "NATR": "1d",
+      "spread": "15m",
+      "activity": "1h"
+    },
+    "thresholds": {
+      "delta": 0,
+      "vol": 0,
+      "trade": 0,
+      "NATR": 0,
+      "spread": 0,
+      "activity": 0
+    },
+    "interval": 5
+  },
+  "exchanges_ws": {
+    "exchanges_full_list": [
+      "binance",
+      "okx",
+      "bybit",
+      "gate",
+      "bitget",
+      "bingx",
+      "mexc"
+    ],
+    "exchanges": [
+      {
+        "exchange": "gate",
+        "use": true
+      },
+      {
+        "exchange": "bitget",
+        "use": false
+      },
+      {
+        "exchange": "bingx",
+        "use": true
+      },
+      {
+        "exchange": "mexc",
+        "use": false
+      },
+      {
+        "exchange": "kraken",
+        "use": false
+      },
+      {
+        "exchange": "coinbase",
+        "use": false
+      },
+      {
+        "exchange": "binance",
+        "use": false
+      },
+      {
+        "exchange": "okx",
+        "use": false
+      },
+      {
+        "exchange": "bybit",
+        "use": false
+      },
+      {
+        "exchange": "mexc_custom",
+        "use": false
+      }
+    ],
+    "reconnect_interval": 5,
+    "max_reconnect_attempts": 10,
+    "output_file": "data/last_prices_ws.json"
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "logs/log.log"
+  },
+  "_orders_path": "utils/orders.json",
+  "_mock_data_path": "utils/mock_data.json",
+  "_exchanges_symbols_path": "data/exchanges_symbols.json",
+  "_exchanges_symbols_trades_path": "data/exchanges_symbols_trades.json"
+}

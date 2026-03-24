@@ -16,5 +16,6 @@
 - never read .env file
 - all credentials for project get from .env file to settings.py
 - all css html js code in the templates folder
-
+- не треба писати тести якщо про це не запитано
+- просто напиши функцію просту коротку, лаконічну мінімум коду
 - exchange work only with usdt for futures att all, without usdc and spot

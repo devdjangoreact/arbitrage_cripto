@@ -108,65 +108,50 @@ class WebServer:
 
         @self.app.get("/api/symbols")
         async def get_symbols():
-            """API endpoint to get symbols from symbols.json."""
+            """API endpoint to get symbols from config.json."""
             try:
-                symbols_path = "utils/symbols.json"
-                if os.path.exists(symbols_path):
-                    with open(symbols_path, encoding="utf-8") as f:
-                        symbols = json.load(f)
-                        return {"status": "success", "data": symbols}
+                if self.settings.symbols_spot and self.settings.symbols:
+                    return {"status": "success", "data": self.settings.symbols}
                 else:
-                    return {"status": "error", "message": "Symbols file not found"}
+                    return {"status": "error", "message": "No symbols available"}
             except Exception as e:
                 self.logger.error(f"Error loading symbols: {e}")
                 return {"status": "error", "message": str(e)}
 
         @self.app.post("/api/symbols")
         async def update_symbols(request: dict):
-            """API endpoint to update symbols in symbols.json."""
+            """API endpoint to update symbols in config.json."""
             try:
-                symbols_path = "utils/symbols.json"
-                symbols = request.get("symbols", [])
-
-                with open(symbols_path, "w", encoding="utf-8") as f:
-                    json.dump(symbols, f, indent=2, ensure_ascii=False)
-
-                self.logger.info(f"📊 SYMBOLS UPDATE - Updated {len(symbols)} symbols")
-                return {"status": "success", "message": "Symbols updated successfully"}
+                self.settings.symbols_spot = request.get("symbols_spot", [])
+                self.settings.symbols = request.get("symbols", [])
             except Exception as e:
                 self.logger.error(f"Error updating symbols: {e}")
                 return {"status": "error", "message": str(e)}
+            self.logger.info(f"📊 SYMBOLS UPDATE - Updated {len(self.settings.symbols_spot)} symbols")
+            return {"status": "success", "message": "Symbols updated successfully"}
 
         @self.app.get("/api/exchanges")
         async def get_exchanges():
-            """API endpoint to get exchanges from exchange.json."""
+            """API endpoint to get exchanges from config.json."""
             try:
-                exchanges_path = "utils/exchange.json"
-                if os.path.exists(exchanges_path):
-                    with open(exchanges_path, encoding="utf-8") as f:
-                        exchanges = json.load(f)
-                        return {"status": "success", "data": exchanges}
+                if self.settings.exchanges:
+                    return {"status": "success", "data": self.settings.exchanges}
                 else:
-                    return {"status": "error", "message": "Exchanges file not found"}
+                    return {"status": "error", "message": "No exchanges available"}
             except Exception as e:
                 self.logger.error(f"Error loading exchanges: {e}")
                 return {"status": "error", "message": str(e)}
 
         @self.app.post("/api/exchanges")
         async def update_exchanges(request: dict):
-            """API endpoint to update exchanges in exchange.json."""
+            """API endpoint to update exchanges in config.json."""
             try:
-                exchanges_path = "utils/exchange.json"
-                exchanges = request.get("exchanges", [])
-
-                with open(exchanges_path, "w", encoding="utf-8") as f:
-                    json.dump(exchanges, f, indent=2, ensure_ascii=False)
-
-                self.logger.info(f"📊 EXCHANGES UPDATE - Updated {len(exchanges)} exchanges")
-                return {"status": "success", "message": "Exchanges updated successfully"}
+                self.settings.exchanges = request.get("exchanges", [])
             except Exception as e:
                 self.logger.error(f"Error updating exchanges: {e}")
                 return {"status": "error", "message": str(e)}
+            self.logger.info(f"📊 EXCHANGES UPDATE - Updated {len(self.settings.exchanges)} exchanges")
+            return {"status": "success", "message": "Exchanges updated successfully"}
 
         @self.app.get("/api/orders")
         async def get_orders():

@@ -24,12 +24,14 @@ class ExchangesWS:
 
         # Prepare (lazy) exchanges container and factory map
         self.exchanges: dict[str, ccxtpro.Exchange] = {}
-        self._allowed_exchange_names = list(self.settings.exchanges_list or [])
+        self._allowed_exchange_names = [
+            exchange["exchange"] for exchange in self.settings._exchanges if exchange["use"]
+        ]
 
         self._initialize_exchanges()
 
         self.last_prices = []
-        self._load_last_prices()
+        # self._load_last_prices()
 
     def _initialize_exchanges(self):
         def _ccxt_factory(ccxt_id):
@@ -53,8 +55,16 @@ class ExchangesWS:
             "mexc_custom": lambda: MEXCExchange(logger=self.logger),
         }
 
-    def _build_exchange_credentials(self, ccxt_id: str, futures: bool = True, contract: str = "usdt") -> dict:
+    def _build_exchange_credentials(
+        self, ccxt_id: str, futures: bool = True, spot: bool = False, contract: str = "usdt"
+    ):
         """Build a ccxt/pro constructor config dict for a given exchange id, using settings only.
+
+        Args:
+            ccxt_id: Exchange identifier (e.g., 'binance', 'okx')
+            futures: Enable futures trading (default: True)
+            spot: Enable spot trading (default: False)
+            contract: Contract type for futures (e.g., 'usdt', 'btc') (default: 'usdt')
 
         Returns a dict containing credentials and safe defaults like enableRateLimit.
         """
@@ -65,42 +75,78 @@ class ExchangesWS:
         if isinstance(creds, dict):
             config.update(creds)
 
-        # Per-exchange adjustments (extend as needed)
+        # Initialize options dict if not present
+        config.setdefault("options", {})
+
+        # Binance configuration block
         if ccxt_id == "binance":
-            # Prefer unified futures if you mainly trade futures; leave commented if spot needed
-            # config.setdefault("options", {})
-            # config["options"].setdefault("defaultType", "future")
-            pass
-        elif ccxt_id == "okx":
-            # OKX often requires password in creds; nothing else by default
-            pass
-        elif ccxt_id == "bybit":
-            pass
-        elif ccxt_id == "gateio":
+            if futures:
+                config["options"].setdefault("defaultType", "future")
+            elif spot:
+                config["options"].setdefault("defaultType", "spot")
+
+        # OKX configuration block
+        if ccxt_id == "okx":
+            if futures:
+                config["options"].setdefault("defaultType", "future")
+            elif spot:
+                config["options"].setdefault("defaultType", "spot")
+
+        # Bybit configuration block
+        if ccxt_id == "bybit":
+            if futures:
+                config["options"].setdefault("defaultType", "future")
+            elif spot:
+                config["options"].setdefault("defaultType", "spot")
+
+        # Gate.io configuration block
+        if ccxt_id == "gateio":
             # Enable clock skew adjustment to avoid REQUEST_EXPIRED
-            config.setdefault("options", {})
             config["options"].setdefault("adjustForTimeDifference", True)
-            # Use futures (perpetual swaps) by default
-            config["options"].setdefault("defaultType", "swap")
-        elif ccxt_id == "bitget":
-            # Use futures (perpetual swaps) by default
-            config.setdefault("options", {})
-            config["options"].setdefault("defaultType", "swap")
-            # Correct defaults per Bitget: tdMode and posMode
-            config["options"].setdefault("defaultMarginMode", "isolated")  # isolated or cross
-            config["options"].setdefault("defaultPositionMode", "one_way")  # one_way or hedged
-        elif ccxt_id == "bingx":
-            # Use futures (perpetual swaps) by default
-            config.setdefault("options", {})
-            config["options"].setdefault("defaultType", "swap")
-            # Help prevent timestamp mismatch
-            config["options"].setdefault("adjustForTimeDifference", True)
-        elif ccxt_id == "mexc":
-            pass
-        elif ccxt_id == "kraken":
-            pass
-        elif ccxt_id == "coinbase":
-            pass
+            if futures:
+                config["options"].setdefault("defaultType", "swap")
+            elif spot:
+                config["options"].setdefault("defaultType", "spot")
+
+        # Bitget configuration block
+        if ccxt_id == "bitget":
+            if futures:
+                config["options"].setdefault("defaultType", "swap")
+                # Correct defaults per Bitget: tdMode and posMode
+                config["options"].setdefault("defaultMarginMode", "isolated")  # isolated or cross
+                config["options"].setdefault("defaultPositionMode", "one_way")  # one_way or hedged
+            elif spot:
+                config["options"].setdefault("defaultType", "spot")
+
+        # BingX configuration block
+        if ccxt_id == "bingx":
+            if futures:
+                config["options"].setdefault("defaultType", "swap")
+                # Help prevent timestamp mismatch
+                config["options"].setdefault("adjustForTimeDifference", True)
+            elif spot:
+                config["options"].setdefault("defaultType", "spot")
+
+        # MEXC configuration block
+        if ccxt_id == "mexc":
+            if futures:
+                config["options"].setdefault("defaultType", "swap")
+            elif spot:
+                config["options"].setdefault("defaultType", "spot")
+
+        # Kraken configuration block
+        if ccxt_id == "kraken":
+            if futures:
+                config["options"].setdefault("defaultType", "future")
+            elif spot:
+                config["options"].setdefault("defaultType", "spot")
+
+        # Coinbase configuration block
+        if ccxt_id == "coinbase":
+            if futures:
+                config["options"].setdefault("defaultType", "future")
+            elif spot:
+                config["options"].setdefault("defaultType", "spot")
 
         return config
 
@@ -1051,6 +1097,108 @@ class ExchangesWS:
                 },
             },
         }
+
+    async def get_all_symbols(self, exchange_name: str):
+        """Get all symbols from a specific exchange."""
+        exchange = self._get_or_create_exchange(exchange_name)
+        if not exchange:
+            return []
+
+        try:
+            await exchange.load_markets()
+            symbols = []
+            for symbol, market in exchange.markets.items():
+                # if market.get("swap") or market.get("future") or market.get("contract"):
+                if market.get("swap") and market.get("quote") == "USDT":
+                    symbols.append(
+                        {
+                            "symbol": symbol,
+                            # "min": market.get("info", {}).get("order_limit", {}),
+                            # "max": market.get("info", {}).get("order_size_max", {}),
+                            # "price": market.get("info", {}).get("underlying_price", {}),
+                        }
+                    )
+            return symbols
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error getting symbols from {exchange_name}: {e}")
+            return []
+
+    async def get_all_symbols_by_exchanges(self):
+        """Get all symbols by exchanges."""
+        symbols_by_exchanges = {}
+        for exchange_name in self._allowed_exchange_names:
+            symbols = await self.get_all_symbols(exchange_name)
+            symbols_by_exchanges[exchange_name] = symbols
+        return symbols_by_exchanges
+
+    async def get_ohlcv_with_different_limits(self, exchange, symbols: str, timeframes: list):
+
+        # symbol = 'BTC/USDT:USDT'
+        # timeframes = ['5m', '15m', '1h', '4h', '1d']
+        # limits = [6, 4, 2, 1, 1]  # для кожного таймфрейму
+
+        # Отримуємо дані з максимальним limit
+        symbols_and_timeframes = []
+        for symbol in symbols:
+            for tf, limit in timeframes.items():
+                symbols_and_timeframes.append([symbol, tf])
+        try:
+            ohlcv_data = await exchange.watch_ohlcv_for_symbols(symbols_and_timeframes)
+        except Exception as e:
+            return {}
+
+        # Обрізаємо до потрібної кількості
+        result = {}
+        for i, tf, limit in enumerate(timeframes.items()):
+            if i < len(ohlcv_data):
+                candles = ohlcv_data[i]
+                if candles:
+                    # Беремо тільки останні N свічок
+                    limited_candles = candles[-limit:]
+
+                    # Обчислюємо статистику
+                    if limited_candles:
+                        highs = [c[2] for c in limited_candles]
+                        lows = [c[3] for c in limited_candles]
+                        volumes = [c[5] for c in limited_candles]
+
+                        result[tf] = {
+                            "max_price": max(highs),
+                            "min_price": min(lows),
+                            "total_volume": sum(volumes),
+                            "trade_count": len(limited_candles),
+                            "candles": limited_candles,
+                        }
+
+        return result
+
+    async def get_all_symbols_volume_trades(self, exchanges_symbols: dict):
+        """Get all symbols volume trades from all exchanges."""
+        symbols_data_trades = []
+        timeframes = {"5m": 6, "15m": 4, "1h": 2, "4h": 1, "1d": 1}
+        for exchange_name, symbols_data in exchanges_symbols.items():
+            if exchange_name not in self._allowed_exchange_names:
+                continue
+            exchange = self._get_or_create_exchange(exchange_name)
+
+            # data = await self.get_ohlcv_with_different_limits(exchange, symbols_data, timeframes)
+            # if not data:
+            for symbol in symbols_data:
+                data = [item for item in symbols_data_trades if item["symbol"] == symbol]
+                if data:
+                    items = data[0]
+                else:
+                    items = {"symbol": symbol, "trades": []}
+                    symbols_data_trades.append(items)
+                trades_exchange = {}
+                for tf, limit in timeframes.items():
+                    data_fetch = await exchange.fetch_ohlcv(symbol, tf, limit=limit)
+                    trades_exchange[tf] = data_fetch
+
+                items["trades"].append({exchange_name: trades_exchange})
+            self.logger.info(f"Symbols data trades by {exchange_name} loaded")
+        return symbols_data_trades
 
 
 async def test_exchanges_order_operations(exchanges_ws: ExchangesWS):

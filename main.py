@@ -1,6 +1,7 @@
 import asyncio
 import traceback
 
+import utils
 from app.arbitrage_analyzer import AnalyzeArbitrage
 from app.exchanges_ws import ExchangesWS
 from app.token_analyzer import TokensAnalyzer
@@ -22,6 +23,14 @@ async def main():
 
     # Initialize WebSocket exchanges
     ws_exchanges = ExchangesWS(logger=logger, settings=settings)
+
+    exchanges_symbols = await utils.exchanges_symbols(ws_exchanges, filter=True, logger=logger)
+
+    exchanges_symbols_trades = await ws_exchanges.get_all_symbols_volume_trades(exchanges_symbols)
+
+    exchanges_symbols_for_trades = utils.exchanges_symbols_trades(
+        exchanges_symbols_trades, settings, filter=True, logger=logger
+    )
 
     # Initialize arbitrage analyzer with settings parameters
     analyzer = AnalyzeArbitrage(

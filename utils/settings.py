@@ -11,9 +11,7 @@ class Settings:
 
     def __init__(
         self,
-        config_path: str = "utils/config.json",
-        exchanges_path: str = "utils/exchange.json",
-        symbols_path: str = "utils/symbols.json",
+        config_path: str = "config.json",
     ):
         """
         Initialize settings with configuration file.
@@ -21,39 +19,21 @@ class Settings:
         Args:
             config_path: Path to the configuration JSON file
         """
-        self.config_path = config_path
-        self.exchanges_path = exchanges_path
-        self.symbols_path = symbols_path
         self._config: Optional[Dict[str, Any]] = None
+
+        self.config_path = config_path
+
         self._initialize_environment()
         self._load_config()
         self._load_exchanges()
-        self._load_symbols()
 
     def _load_exchanges(self) -> None:
-        """Load exchanges from exchange.json."""
-        with open(self.exchanges_path, encoding="utf-8") as f:
-            self._exchanges = json.load(f)
-
-    def _load_symbols(self) -> None:
-        """Load symbols from symbols.json."""
-        with open(self.symbols_path, encoding="utf-8") as f:
-            self._symbols = json.load(f)
+        """Load exchanges from config.json."""
+        self._exchanges = self._config["exchanges_ws"]["exchanges"]
 
     def _initialize_environment(self) -> None:
         """Initialize environment variables from .env file."""
         env_file = Path(".env")
-        env_example = Path(".env-example")
-
-        # Create .env file from .env-example if it doesn't exist
-        if not env_file.exists() and env_example.exists():
-            print("Creating .env file from .env-example...")
-            with open(env_example, encoding="utf-8") as src:
-                content = src.read()
-            with open(env_file, "w", encoding="utf-8") as dst:
-                dst.write(content)
-            print("[OK] Created .env file from .env-example")
-            print("[WARNING] Please edit .env file with your actual API keys before running the application")
 
         # Load environment variables
         if env_file.exists():
@@ -70,6 +50,15 @@ class Settings:
 
             with open(self.config_path, encoding="utf-8") as f:
                 self._config = json.load(f)
+
+            self._exchanges_symbols_path = self._config["_exchanges_symbols_path"]
+            self._exchanges_symbols_trades_path = self._config["_exchanges_symbols_trades_path"]
+
+            self._orders_path = self._config["_orders_path"]
+            self._mock_data_path = self._config["_mock_data_path"]
+            self._arbitrage_input_path = self._config["arbitrage_analyzer"]["input_file"]
+            self._arbitrage_output_path = self._config["arbitrage_analyzer"]["output_file"]
+            self._tokens_output_path = self._config["tokens_analyzer"]["output_path"]
 
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in configuration file: {e}") from e
@@ -147,61 +136,56 @@ class Settings:
     @property
     def symbols(self) -> list:
         """Get symbols array for both spot and futures trading."""
-        default_symbols = ["BTC/USDT", "ETH/USDT", "BTC/USDT:USDT", "ETH/USDT:USDT"]
-        result = self.get("symbols", default_symbols)
-        return result if isinstance(result, list) else default_symbols
+        with open(self._exchanges_symbols_path, "r") as f:
+            exchanges_symbols = json.load(f)
+        return exchanges_symbols["list"]
 
     # Arbitrage analyzer specific properties
     @property
     def arbitrage_input_file(self) -> str:
         """Get arbitrage analyzer input file path."""
-        result = self.get("arbitrage_analyzer.input_file", "data/last_prices_ws.json")
-        return str(result)
+        return self.get("arbitrage_analyzer.input_file", "data/last_prices_ws.json")
 
     @property
     def arbitrage_output_file(self) -> str:
         """Get arbitrage analyzer output file path."""
-        result = self.get("arbitrage_analyzer.output_file", "data/arbitrage_analysis.json")
-        return str(result)
+        return self.get("arbitrage_analyzer.output_file", "data/arbitrage_analysis.json")
 
     @property
     def arbitrage_interval(self) -> int:
         """Get arbitrage analyzer interval."""
-        result = self.get("arbitrage_analyzer.interval", 1)
-        return int(result) if isinstance(result, (int, float, str)) else 1
+        return self.get("arbitrage_analyzer.interval", 1)
 
     @property
     def arbitrage_volume_trade(self) -> float:
         """Get arbitrage analyzer volume trade."""
-        result = self.get("arbitrage_analyzer.volume_trade", 100.0)
-        return float(result) if isinstance(result, (int, float, str)) else 100.0
+        return self.get("arbitrage_analyzer.volume_trade", 100.0)
 
     # Tokens analyzer specific properties
     @property
     def tokens_output_path(self) -> str:
         """Get tokens analyzer output path."""
-        result = self.get("tokens_analyzer.output_path", "data/tokens_analyzer.json")
-        return str(result)
+        return self.get("tokens_analyzer.output_path", "data/tokens_analyzer.json")
 
     @property
     def tokens_test_mode(self) -> bool:
         """Get tokens analyzer test mode."""
-        result = self.get("tokens_analyzer.test_mode", False)
-        return bool(result) if isinstance(result, (bool, int, str)) else False
+        return self.get("tokens_analyzer.test_mode", False)
 
     @property
     def tokens_periods(self) -> Dict[str, str]:
         """Get tokens analyzer periods configuration."""
-        default_periods = {
-            "delta": "1h",
-            "vol": "1h",
-            "trade": "1h",
-            "NATR": "1h",
-            "spread": "1h",
-            "activity": "1h",
-        }
-        result = self.get("tokens_analyzer.periods", default_periods)
-        return result if isinstance(result, dict) else default_periods
+        return self.get(
+            "tokens_analyzer.periods",
+            {
+                "delta": "1h",
+                "vol": "1h",
+                "trade": "1h",
+                "NATR": "1h",
+                "spread": "1h",
+                "activity": "1h",
+            },
+        )
 
     @property
     def tokens_thresholds(self) -> Dict[str, float]:
@@ -214,85 +198,53 @@ class Settings:
             "spread": 0.0,
             "activity": 0.0,
         }
-        result = self.get("tokens_analyzer.thresholds", default_thresholds)
-        if isinstance(result, dict):
-            # Ensure all values are float
-            return {k: float(v) if isinstance(v, (int, float)) else 0.0 for k, v in result.items()}
-        return default_thresholds
+        return self.get("tokens_analyzer.thresholds", default_thresholds)
 
     @property
     def tokens_interval(self) -> int:
         """Get tokens analyzer interval."""
-        result = self.get("tokens_analyzer.interval", 60)
-        return int(result) if isinstance(result, (int, float, str)) else 60
+        return self.get("tokens_analyzer.interval", 60)
 
     @property
     def tokens_save_to_file(self) -> bool:
         """Get tokens analyzer save to file setting."""
-        result = self.get("tokens_analyzer.save_to_file", True)
-        return bool(result) if isinstance(result, (bool, int, str)) else True
-
-    # Exchanges WebSocket specific properties
-    @property
-    def exchanges_list(self) -> list:
-        """Get list of exchanges for WebSocket connections."""
-        default_exchanges = ["binance", "okx", "bybit"]
-        result = self.get("exchanges_ws.exchanges", default_exchanges)
-        return result if isinstance(result, list) else default_exchanges
+        return self.get("tokens_analyzer.save_to_file", True)
 
     @property
     def exchanges_reconnect_interval(self) -> int:
         """Get exchanges reconnect interval."""
-        result = self.get("exchanges_ws.reconnect_interval", 5)
-        return int(result) if isinstance(result, (int, float, str)) else 5
+        return self.get("exchanges_ws.reconnect_interval", 5)
 
     @property
     def exchanges_max_reconnect_attempts(self) -> int:
         """Get exchanges max reconnect attempts."""
-        result = self.get("exchanges_ws.max_reconnect_attempts", 10)
-        return int(result) if isinstance(result, (int, float, str)) else 10
+        return self.get("exchanges_ws.max_reconnect_attempts", 10)
 
     @property
     def exchanges_output_file(self) -> str:
         """Get exchanges output file path."""
-        result = self.get("exchanges_ws.output_file", "data/last_prices_ws.json")
-        return str(result)
+        return self.get("exchanges_ws.output_file", "data/last_prices_ws.json")
 
     @property
     def web_server(self) -> bool:
         """Get web server setting."""
-        result = self.get("web_server", False)
-        return bool(result) if isinstance(result, (bool, int, str)) else False
+        return self.get("web_server", False)
 
     @property
-    def web_server_host(self) -> str:
-        """Get web server host."""
-        result = self.get("web_server_host", "0.0.0.0")
+    def web_server_address(self) -> str:
+        """Get web server address."""
+        result = self.get("web_server_address", "0.0.0.0:8000")
         return str(result)
-
-    @property
-    def web_server_port(self) -> int:
-        """Get web server port."""
-        result = self.get("web_server_port", 8000)
-        return int(result) if isinstance(result, (int, float, str)) else 8000
 
     @property
     def desktop(self) -> bool:
         """Get desktop setting."""
-        result = self.get("desktop", False)
-        return bool(result) if isinstance(result, (bool, int, str)) else False
+        return self.get("desktop", False)
 
     @property
     def save_to_file(self) -> bool:
         """Get save to file setting."""
-        result = self.get("save_to_file", True)
-        return bool(result) if isinstance(result, (bool, int, str)) else True
-
-    @property
-    def mexc_id(self) -> str:
-        """Get MEXC ID from environment."""
-        result = os.getenv("MEXC_API_KEY", "")
-        return str(result)
+        return self.get("save_to_file", True)
 
     def __str__(self) -> str:
         """String representation of settings."""
