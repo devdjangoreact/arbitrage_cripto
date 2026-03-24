@@ -68,23 +68,38 @@ async def exchanges_symbols(
 
 
 def exchanges_symbols_trades(
-    new_data: dict, settings: Settings, filter: bool = False, update: bool = False, logger: MultiLogger = None
+    new_data: list, settings: Settings, filter: bool = False, update: bool = False, logger: MultiLogger = None
 ) -> dict:
     """Exchanges symbols trades by settings."""
     with open(settings._exchanges_symbols_trades_path, encoding="utf-8") as f:
         current_data = json.load(f)
 
     if filter:
-        for exchange, symbols_data in new_data.items():
-            for symbol, trades_data in symbols_data.items():
-                for interval, trades in trades_data.items():
-                    for trade in trades:
-                        current_data[exchange][symbol][interval][trade] = trade
+        for symbol_item in new_data:
+            symbol = symbol_item.get("symbol")
+            trades_list = symbol_item.get("trades", [])
+            for trade_item in trades_list:
+                for exchange, trades_data in trade_item.items():
+                    if exchange not in current_data:
+                        current_data[exchange] = {}
+                    if symbol not in current_data[exchange]:
+                        current_data[exchange][symbol] = {}
+                    for interval, trades in trades_data.items():
+                        if interval not in current_data[exchange][symbol]:
+                            current_data[exchange][symbol][interval] = {}
+                        for trade in trades:
+                            current_data[exchange][symbol][interval][trade] = trade
     if update:
-        for exchange, symbols_data in new_data.items():
-            current_data[exchange] = symbols_data
+        for symbol_item in new_data:
+            symbol = symbol_item.get("symbol")
+            trades_list = symbol_item.get("trades", [])
+            for trade_item in trades_list:
+                for exchange, trades_data in trade_item.items():
+                    if exchange not in current_data:
+                        current_data[exchange] = {}
+                    current_data[exchange][symbol] = trades_data
 
     with open(settings._exchanges_symbols_trades_path, "w", encoding="utf-8") as f:
         json.dump(current_data, f, indent=4)
-    logger.success(f"Exchanges symbols trades updated: {current_data}")
+    logger.success(f"Exchanges symbols trades updated")
     return current_data

@@ -268,7 +268,7 @@ class ExchangesWS:
                         "reconnect_attempt": reconnect_attempts,
                     }
                     if self.logger:
-                        self.logger.error(f"{err_entry}")
+                        self.logger.warning(f"{err_entry}")
                     # Add error to file only if save_to_file is True
                     if self.save_to_file:
                         with open(output_file, "a", encoding="utf-8") as f:

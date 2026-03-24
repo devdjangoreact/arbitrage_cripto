@@ -30,6 +30,11 @@ class TokensAnalyzer:
         self.periods = self.settings.tokens_periods_seconds
         self.thresholds = self.settings.tokens_thresholds
         self._data_processed = False
+        
+        # Initialize history dictionaries for each exchange
+        self.price_history: Dict[str, Dict[str, deque]] = {}
+        self.volume_history: Dict[str, Dict[str, deque]] = {}
+        self.trade_history: Dict[str, Dict[str, deque]] = {}
 
     def _get_period_timestamp(self, period: str) -> int:
         """Get timestamp for given period."""
@@ -232,6 +237,18 @@ class TokensAnalyzer:
 
         if not exchange or not symbol:
             return
+
+        # Initialize exchange dictionaries if not exist
+        if exchange not in self.price_history:
+            self.price_history[exchange] = {}
+            self.volume_history[exchange] = {}
+            self.trade_history[exchange] = {}
+        
+        # Initialize symbol deques if not exist
+        if symbol not in self.price_history[exchange]:
+            self.price_history[exchange][symbol] = deque()
+            self.volume_history[exchange][symbol] = deque()
+            self.trade_history[exchange][symbol] = deque()
 
         # Extract price (average of ask and bid)
         ask = entry.get("ask")
